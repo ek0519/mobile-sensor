@@ -30,6 +30,37 @@ test('B catalog separates sensor selection from visual guided tests', async ({ p
   }
 });
 
+test('live Motion reports missing sensor data honestly and shows a readable direction when data arrives', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'DeviceMotionEvent', { configurable: true, value: function DeviceMotionEvent() {} });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Motion/ }).click();
+  await page.getByRole('button', { name: 'Start test' }).click();
+
+  await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('devicemotion'), {
+    acceleration: { x: null, y: null, z: null },
+    accelerationIncludingGravity: { x: null, y: null, z: null },
+    rotationRate: { alpha: null, beta: null, gamma: null },
+    interval: null,
+  })));
+  await expect(page.locator('.state-pill')).toHaveText('WAITING FOR DATA');
+  await expect(page.locator('.reading-summary')).toHaveText('Waiting for signal');
+  await expect(page.locator('.result-copy small')).toHaveText('No motion data yet. Allow access, then move your phone.');
+
+  await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('devicemotion'), {
+    acceleration: { x: 4, y: 0, z: 0 },
+    accelerationIncludingGravity: { x: 4, y: 0, z: 9.8 },
+    rotationRate: { alpha: 0, beta: 0, gamma: 0 },
+    interval: 16,
+  })));
+  await expect(page.locator('.reading-summary')).toContainText('X 4.0');
+  await expect(page.locator('.event-row strong')).toHaveText('RIGHT →');
+  await expect(page.locator('.motion-direction strong')).toHaveText('MOVE RIGHT →');
+  await expect(page.locator('.motion-direction strong')).toHaveCSS('font-size', '24px');
+});
+
 test('demo motion produces a visual response, success light, haptic option, and shake event', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
@@ -89,7 +120,7 @@ test('Touch center dead zone does not report a successful press', async ({ page 
   await expect(page.getByTestId('touch-left-zone')).toHaveAttribute('data-pressed', 'false');
   await expect(page.getByTestId('touch-right-zone')).toHaveAttribute('data-pressed', 'false');
   await expect(page.locator('.status-light.green')).toHaveCount(0);
-  await expect(page.getByText('WAITING FOR DATA', { exact: true })).toBeVisible();
+  await expect(page.locator('.state-pill')).toHaveText('WAITING FOR DATA');
 });
 
 test('sensor catalog and detail view fit a phone screen without vertical page scrolling', async ({ page }) => {

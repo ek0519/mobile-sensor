@@ -38,7 +38,8 @@
   let passed = $derived(sensorStatus.state === 'active' && hasReading(selectedSensor));
   let headline = $derived(readingHeadline(selectedSensor));
   let statusLabel = $derived(passed ? 'CHECK PASSED' : statusText(sensorStatus.state));
-  let help = $derived(sensorStatus.error ? sensorStatus.error : info.guide);
+  let help = $derived(sensorStatus.error ? sensorStatus.error : sensorStatus.state === 'denied' && selectedSensor === 'motion' ? 'Motion access is blocked. Enable it in your phone browser settings.' : (sensorStatus.state === 'waiting' || sensorStatus.state === 'active') && !hasReading(selectedSensor) ? selectedSensor === 'motion' ? 'No motion data yet. Use HTTPS, allow access if asked, then move the phone.' : 'No sensor data yet. Check browser permissions and follow the instruction.' : info.guide);
+  let resultMessage = $derived(passed ? 'Your sensor is responding.' : sensorStatus.error ? sensorStatus.error : sensorStatus.state === 'denied' ? 'Allow sensor access in your browser settings, then try again.' : (sensorStatus.state === 'waiting' || sensorStatus.state === 'active') && !hasReading(selectedSensor) ? selectedSensor === 'motion' ? 'No motion data yet. Allow access, then move your phone.' : 'Waiting for data. Follow the instruction.' : 'Start the test and follow the instruction.');
 
   function hasReading(name: SensorName): boolean {
     switch (name) {
@@ -109,7 +110,7 @@
     </header>
     <div class="test-title">
       <div><p class="eyebrow">STEP 02 · {info.group}</p><h1>Test {info.title}</h1><code>{info.api}</code></div>
-      <span class="state-pill" class:passed>{passed ? 'PASS' : sensorStatus.state.toUpperCase()}</span>
+      <span class="state-pill" class:passed>{passed ? 'PASS' : statusLabel}</span>
     </div>
 
     <div class="detail-layout detail-b">
@@ -117,7 +118,7 @@
       <div class="instruction-card"><span class="instruction-icon">{info.icon}</span><div><strong>{info.action}</strong><p>{help}</p></div></div>
     </div>
 
-    <div class="result-strip" class:passed aria-live="polite"><span class="status-light" class:green={passed}><i></i></span><span class="result-copy"><strong>{statusLabel}</strong><small>{passed ? 'Your sensor is responding.' : sensorStatus.error || 'Start the test and follow the instruction.'}</small></span><span class="result-arrow">{passed ? '✓' : '···'}</span></div>
+    <div class="result-strip" class:passed aria-live="polite"><span class="status-light" class:green={passed}><i></i></span><span class="result-copy"><strong>{statusLabel}</strong><small>{resultMessage}</small></span><span class="result-arrow">{passed ? '✓' : '···'}</span></div>
     <div class="test-controls">
       <button class="start-button" onclick={() => onTest(selectedSensor)} disabled={sensorStatus.state === 'unsupported'}>{passed ? 'Test again' : 'Start test'}<span>↗</span></button>
       <label class="haptic-toggle" class:unavailable={!hapticsSupported}><input type="checkbox" checked={hapticsEnabled} disabled={!hapticsSupported} onchange={event => onHapticChange(event.currentTarget.checked)} /><span class="haptic-icon">⌁</span><span><strong>Haptic feedback</strong><small>{hapticsSupported ? 'Vibrate on action' : 'Not supported here'}</small></span></label>

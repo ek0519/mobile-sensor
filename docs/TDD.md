@@ -106,3 +106,9 @@ Removed NES.css from the demo dependency, import, and markup. The Morandi layout
 - Red: the core public-interface test showed `capabilities()` still included Viewport and Visibility; the catalog test still saw six cards; and the icon-size check measured 27px.
 - Green: the core exposes only Motion, Orientation, Location, and Touch; Svelte stores and packed declarations omit Viewport/Visibility; the demo catalog contains four cards with 42px icons (34px on short screens).
 - Verification: Vitest 26 passed; TypeScript/Svelte diagnostics passed with no errors or warnings; Playwright 6 passed; packed ESM imports and consumer declarations passed; production build and `git diff --check` passed.
+
+## Live Motion feedback regression — 2026-09-28
+
+- Red: a live `devicemotion` event updated the raw signal and Direction event log, while the visual direction stayed at `WAITING`; an all-null event was incorrectly labeled `ACTIVE`.
+- Green: the live screen now subscribes to device state on mount, reports “WAITING FOR DATA” until a usable reading arrives, explains permission/HTTPS steps, and displays explicit movement directions at 24px.
+- Verification: Vitest 26 passed; TypeScript/Svelte diagnostics had 0 errors and warnings; Playwright 7 passed, including the live `devicemotion` path and `MOVE RIGHT`; packed packages, production build, and `git diff --check` passed.

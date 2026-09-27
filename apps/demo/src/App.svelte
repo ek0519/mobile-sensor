@@ -158,6 +158,7 @@
 
   onMount(() => {
     hapticsSupported = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+    bindStores();
     bindEvents();
     return () => { clearInterval(simTimer); unsubscribers.forEach(off => off()); deviceWatch?.(); sensors.destroy(); };
   });
