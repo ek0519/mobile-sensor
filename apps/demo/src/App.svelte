@@ -3,9 +3,13 @@
   import { createSensors } from '@solitudo-studio/core';
   import type { DeviceState, DetectorName, SensorName } from '@solitudo-studio/core';
   import { createSensorStores } from '@solitudo-studio/svelte';
-  import SensorTestWizard from './SensorTestWizard.svelte';
+  import SensorGalleryFlow from './SensorGalleryFlow.svelte';
 
   let simulated = $state(false);
+  let screen = $state<'catalog' | 'test'>('catalog');
+  let selectedSensor = $state<SensorName>('motion');
+  let hapticsEnabled = $state(false);
+  let hapticsSupported = $state(false);
   const initialSensors = createSensors();
   let sensors = $state(initialSensors);
   const initialStores = createSensorStores(initialSensors, { fps: 8 });
@@ -33,6 +37,7 @@
     unsubscribers.forEach(off => off());
     unsubscribers = (Object.keys(eventLabels) as DetectorName[]).map(name => sensors.on(name, event => {
       events = [{ id: Date.now() + Math.random(), time: new Date(event.timestamp).toLocaleTimeString('en-US'), name: eventLabels[name], source: event.source, intensity: event.intensity, timestamp: event.timestamp }, ...events].slice(0, 200);
+      if (name === 'shake' || name === 'movement') vibrate([35, 30, 45]);
     }));
   }
   function modeEnvironment() {
@@ -61,6 +66,8 @@
     running = false;
     paused = false;
     locationEnabled = false;
+    screen = 'catalog';
+    selectedSensor = 'motion';
     simSample = 0;
     events = [];
     sensors = createSensors({ environment: modeEnvironment() });
@@ -105,6 +112,7 @@
   }
   async function testSensor(name: SensorName) {
     try {
+      vibrate(25);
       if (name === 'motion' || name === 'orientation') {
         // Invoke native permission methods directly from this user-initiated button action.
         const pendingPermission = sensors.requestPermission({ motion: true, orientation: true });
@@ -122,8 +130,18 @@
   function resume() { sensors.resume(); paused = false; if (simulated && !simTimer) simTimer = setInterval(simulate, 120); running = true; }
   function stop() { sensors.stop(); clearInterval(simTimer); simTimer = undefined; running = false; paused = false; }
   function clearEvents() { events = []; }
+  function vibrate(pattern: number | number[]) {
+    if (hapticsEnabled && hapticsSupported) navigator.vibrate(pattern);
+  }
+  function toggleHaptics(enabled: boolean) {
+    hapticsEnabled = enabled;
+    if (enabled && hapticsSupported) navigator.vibrate(25);
+  }
+  function selectSensor(name: SensorName) { selectedSensor = name; screen = 'test'; }
+  function returnToCatalog() { screen = 'catalog'; }
 
   onMount(() => {
+    hapticsSupported = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
     bindEvents();
     return () => { clearInterval(simTimer); unsubscribers.forEach(off => off()); deviceWatch?.(); sensors.destroy(); };
   });
@@ -138,7 +156,7 @@
   <div class="app-status"><span class="run-indicator" class:live={running && !paused}></span><strong>{paused ? 'PAUSED' : running ? (simulated ? 'DEMO RUNNING' : 'SENSORS RUNNING') : simulated ? 'DEMO READY' : 'READY TO TEST'}</strong>
     <div class="app-actions">{#if paused}<button onclick={resume}>Resume</button>{:else if running}<button onclick={pause}>Pause</button>{/if}{#if running || paused}<button onclick={stop}>Stop</button>{/if}</div>
   </div>
-  <SensorTestWizard values={{ motion: $motionStore, orientation: $orientationStore, location: $locationStore, pointer: $pointerStore, viewport: $viewportStore, visibility: $visibilityStore }} statuses={$statusStore} {detectorState} {events} {simulated} onTest={testSensor} onClearEvents={clearEvents} />
+  <SensorGalleryFlow {screen} {selectedSensor} values={{ motion: $motionStore, orientation: $orientationStore, location: $locationStore, pointer: $pointerStore, viewport: $viewportStore, visibility: $visibilityStore }} statuses={$statusStore} {detectorState} {events} {simulated} {hapticsEnabled} {hapticsSupported} onSelect={selectSensor} onBack={returnToCatalog} onTest={testSensor} onHapticChange={toggleHaptics} onClearEvents={clearEvents} />
   <footer class="app-footer"><span>LOCAL SENSOR PLAYGROUND</span><span>Device data stays on this device</span></footer>
 </main></div>
 
