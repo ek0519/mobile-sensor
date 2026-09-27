@@ -1,3 +1,9 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-export default defineConfig({ root: new URL('.', import.meta.url).pathname, plugins: [svelte()], server: { host: '0.0.0.0' }, resolve: { dedupe: ['svelte'] } });
+export default defineConfig({
+  root: new URL('.', import.meta.url).pathname,
+  base: process.env.GITHUB_ACTIONS === 'true' ? '/mobile-sensor/' : '/',
+  plugins: [svelte()],
+  server: { host: '0.0.0.0' },
+  resolve: { dedupe: ['svelte'] },
+});

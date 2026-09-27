@@ -2,6 +2,8 @@
 
 A cross-framework TypeScript library for accessing browser sensors on mobile devices, with React, Vue, and Svelte adapters plus a live Svelte demo. The first release targets Web APIs available in iOS Safari; support for each feature is detected independently in other browsers.
 
+**Live demo:** [Try the Mobile Sensors playground](https://ek0519.github.io/mobile-sensor/)
+
 ## Getting Started
 
 Requirements: Bun 1.2+ (or a compatible workspace package manager) and Node.js 20+. Install dependencies from the project root:
