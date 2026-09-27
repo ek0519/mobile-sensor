@@ -11,7 +11,7 @@ export function createSensors(options: SensorOptions = {}) {
   const location = channel<LocationData | null>(null);
   const pointer = channel<PointerData | null>(null);
   const eventHandlers = new Map<DetectorName, Set<(event: DetectorEvent) => void>>();
-  const device = channel<DeviceState>({ tilting: null, tiltDirection: null, rotating: null, moving: null, stationary: null, shaking: null, movementIntensity: null, direction: null, leftPressed: false, rightPressed: false });
+  const device = channel<DeviceState>({ screenFace: null, tilting: null, tiltDirection: null, rotating: null, moving: null, stationary: null, shaking: null, movementIntensity: null, direction: null, leftPressed: false, rightPressed: false });
   const detector = detectors(options.detectors ?? {}, event => { for (const handler of [...(eventHandlers.get(event.type) ?? [])]) handler(event); }, patch => device.publish({ ...device.api.getSnapshot(), ...patch }));
   const activePointers = new Map<number, 'left' | 'right'>();
   const constructors = { motion: env?.window.DeviceMotionEvent, orientation: env?.window.DeviceOrientationEvent };

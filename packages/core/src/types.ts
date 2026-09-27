@@ -26,11 +26,12 @@ export type PermissionState = 'unknown' | 'granted' | 'denied' | 'not-required' 
 export type Permissions = Record<'motion' | 'orientation' | 'location', PermissionState>;
 
 export type MotionDirection = 'up' | 'down' | 'left' | 'right' | 'rotate-left' | 'rotate-right';
+export type ScreenFace = 'front' | 'back' | 'edge';
 export type TiltDirection = 'forward' | 'backward' | 'left' | 'right';
-export type DetectorName = 'shake' | 'movement' | 'stationary' | 'tilt' | 'tilt-direction' | 'rotation' | 'direction' | 'left-press' | 'right-press';
+export type DetectorName = 'screen-face' | 'shake' | 'movement' | 'stationary' | 'tilt' | 'tilt-direction' | 'rotation' | 'direction' | 'left-press' | 'right-press';
 export type DetectorEvent =
-  | { type: Exclude<DetectorName, 'left-press' | 'right-press'>; source: 'motion' | 'orientation'; timestamp: number; intensity: number; direction?: MotionDirection; tiltDirection?: TiltDirection; pointerId?: never }
-  | { type: 'left-press' | 'right-press'; source: 'pointer'; timestamp: number; pointerId: number; intensity?: undefined; direction?: never; tiltDirection?: never };
-export interface DetectorOptions { shakeThreshold: number; shakeWindow: number; shakeCooldown: number; movementThreshold: number; stationaryThreshold: number; movementDuration: number; stationaryDuration: number; staleAfter: number; tiltThreshold: number; tiltRelease: number; rotationThreshold: number; rotationRelease: number; directionThreshold: number; rotationDirectionThreshold: number; directionCooldown: number }
+  | { type: Exclude<DetectorName, 'left-press' | 'right-press'>; source: 'motion' | 'orientation'; timestamp: number; intensity: number; direction?: MotionDirection; tiltDirection?: TiltDirection; screenFace?: ScreenFace; pointerId?: never }
+  | { type: 'left-press' | 'right-press'; source: 'pointer'; timestamp: number; pointerId: number; intensity?: undefined; direction?: never; screenFace?: never; tiltDirection?: never };
+export interface DetectorOptions { shakeThreshold: number; shakeWindow: number; shakeCooldown: number; movementThreshold: number; stationaryThreshold: number; movementDuration: number; stationaryDuration: number; staleAfter: number; tiltThreshold: number; tiltRelease: number; rotationThreshold: number; rotationRelease: number; directionThreshold: number; circleAccelerationThreshold: number; circleSweepThreshold: number; circleMinSamples: number; circleWindow: number; directionCooldown: number }
 
-export interface DeviceState { tilting: boolean | null; tiltDirection: TiltDirection | null; rotating: boolean | null; moving: boolean | null; stationary: boolean | null; shaking: boolean | null; movementIntensity: number | null; direction: MotionDirection | null; leftPressed: boolean; rightPressed: boolean }
+export interface DeviceState { screenFace: ScreenFace | null; tilting: boolean | null; tiltDirection: TiltDirection | null; rotating: boolean | null; moving: boolean | null; stationary: boolean | null; shaking: boolean | null; movementIntensity: number | null; direction: MotionDirection | null; leftPressed: boolean; rightPressed: boolean }

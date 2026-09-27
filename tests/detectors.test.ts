@@ -8,10 +8,22 @@ it('preserves motion coordinates and reports the dominant rightward direction', 
   const direction = vi.fn();
   s.on('direction', direction);
   await s.start();
-  dispatch(env.window, 'devicemotion', { acceleration: { x: 4, y: 0.2, z: 0 } });
-  expect(s.motion.getSnapshot()?.acceleration).toEqual({ x: 4, y: 0.2, z: 0 });
+  dispatch(env.window, 'devicemotion', { acceleration: { x: -4, y: 0.2, z: 0 } });
+  expect(s.motion.getSnapshot()?.acceleration).toEqual({ x: -4, y: 0.2, z: 0 });
   expect(direction).toHaveBeenCalledWith(expect.objectContaining({ type: 'direction', direction: 'right', source: 'motion' }));
   expect(s.device.getSnapshot().direction).toBe('right');
+  s.destroy();
+});
+
+it('maps a negative vertical acceleration pulse to upward phone movement', async () => {
+  const env = environment();
+  const s = createSensors({ environment: env });
+  const direction = vi.fn();
+  s.on('direction', direction);
+  await s.start();
+  dispatch(env.window, 'devicemotion', { acceleration: { x: 0, y: -4, z: 0 } });
+  expect(direction).toHaveBeenCalledWith(expect.objectContaining({ type: 'direction', direction: 'up', source: 'motion' }));
+  expect(s.motion.getSnapshot()?.acceleration.y).toBe(-4);
   s.destroy();
 });
 
@@ -25,7 +37,7 @@ it('maps all four linear motion directions and ignores sub-threshold input', asy
   const send = (x: number, y: number) => dispatch(env.window, 'devicemotion', { acceleration: { x, y, z: 0 } });
   send(2.4, 0);
   expect(direction).not.toHaveBeenCalled();
-  for (const [x, y] of [[4, 0], [-4, 0], [0, 4], [0, -4]]) {
+  for (const [x, y] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) {
     vi.advanceTimersByTime(401);
     send(0, 0);
     send(x!, y!);
@@ -42,7 +54,7 @@ it('classifies direction from available screen axes when depth acceleration is m
   const direction = vi.fn();
   s.on('direction', direction);
   await s.start();
-  dispatch(env.window, 'devicemotion', { acceleration: { x: 0, y: 4, z: null } });
+  dispatch(env.window, 'devicemotion', { acceleration: { x: 0, y: -4, z: null } });
   expect(s.motion.getSnapshot()?.acceleration.z).toBeNull();
   expect(direction).toHaveBeenCalledWith(expect.objectContaining({ direction: 'up' }));
   s.destroy();
@@ -69,29 +81,36 @@ it('debounces direction pulses without replaying a gesture after the cooldown', 
   vi.advanceTimersByTime(400);
   send(-4, 0);
   expect(direction).toHaveBeenCalledTimes(2);
-  expect(direction.mock.lastCall?.[0]).toMatchObject({ direction: 'left' });
+  expect(direction.mock.lastCall?.[0]).toMatchObject({ direction: 'right' });
   s.destroy();
   expect(vi.getTimerCount()).toBe(0);
 });
 
-it('reports signed left and right phone turns from gyroscope rotation rate', async () => {
+it('reports held-phone circle direction instead of treating one gyroscope axis as a turn', async () => {
   vi.useFakeTimers();
   const env = environment();
   const s = createSensors({ environment: env });
   const direction = vi.fn();
   s.on('direction', direction);
   await s.start();
-  const turn = (alpha: number) => dispatch(env.window, 'devicemotion', { rotationRate: { alpha, beta: 0, gamma: 0 } });
-  turn(29);
-  expect(direction).not.toHaveBeenCalled();
-  turn(45);
-  expect(direction).toHaveBeenLastCalledWith(expect.objectContaining({ direction: 'rotate-right', source: 'motion' }));
-  turn(0);
-  vi.advanceTimersByTime(401);
-  turn(0);
-  turn(-45);
-  expect(direction).toHaveBeenLastCalledWith(expect.objectContaining({ direction: 'rotate-left', source: 'motion' }));
+  const rotateDirections = () => direction.mock.calls.map(([event]) => event.direction).filter(value => value === 'rotate-left' || value === 'rotate-right');
+  dispatch(env.window, 'devicemotion', { acceleration: { x: 0, y: 0, z: 0 }, rotationRate: { alpha: 45, beta: 0, gamma: 0 } });
+  expect(rotateDirections()).toEqual([]);
+  const circle = (sign: 1 | -1) => {
+    for (let step = 0; step <= 16; step += 1) {
+      const angle = sign * Math.PI * 2 * step / 16;
+      dispatch(env.window, 'devicemotion', { acceleration: { x: 4 * Math.cos(angle), y: 4 * Math.sin(angle), z: 0 }, rotationRate: { alpha: 0, beta: 0, gamma: 0 } });
+      vi.advanceTimersByTime(50);
+    }
+  };
+  circle(1);
+  expect(rotateDirections()).toEqual(['rotate-left']);
   expect(s.device.getSnapshot().direction).toBe('rotate-left');
+  dispatch(env.window, 'devicemotion', { acceleration: { x: 0, y: 0, z: 0 } });
+  vi.advanceTimersByTime(401);
+  circle(-1);
+  expect(rotateDirections()).toEqual(['rotate-left', 'rotate-right']);
+  expect(s.device.getSnapshot().direction).toBe('rotate-right');
   s.destroy();
   expect(vi.getTimerCount()).toBe(0);
 });
@@ -197,5 +216,43 @@ it('rejects detector thresholds that would make the public trigger rules ambiguo
   expect(() => createSensors({ environment: null, detectors: { movementThreshold: 0.5, stationaryThreshold: 1 } })).toThrow(RangeError);
   expect(() => createSensors({ environment: null, detectors: { tiltRelease: 21, tiltThreshold: 20 } })).toThrow(RangeError);
   expect(() => createSensors({ environment: null, detectors: { directionThreshold: 0 } })).toThrow(RangeError);
-  expect(() => createSensors({ environment: null, detectors: { rotationDirectionThreshold: Number.NaN } })).toThrow(RangeError);
+  expect(() => createSensors({ environment: null, detectors: { circleSweepThreshold: Number.NaN } })).toThrow(RangeError);
+});
+
+it('reports stable screen faces and clears missing, stale and stopped readings', async () => {
+  vi.useFakeTimers();
+  const env = environment();
+  const s = createSensors({ environment: env });
+  const events = vi.fn();
+  s.on('screen-face', events);
+  await s.start();
+  const orient = (beta: number | null, gamma: number | null = 0) => dispatch(env.window, 'deviceorientation', { beta, gamma });
+  const hold = (beta: number, gamma = 0) => { orient(beta, gamma); vi.advanceTimersByTime(50); orient(beta, gamma); };
+  orient(0);
+  vi.advanceTimersByTime(49); orient(0);
+  expect(events).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(1); orient(0);
+  expect(s.device.getSnapshot().screenFace).toBe('front');
+  orient(180); vi.advanceTimersByTime(25); orient(0);
+  expect(events).toHaveBeenCalledTimes(1);
+  hold(180);
+  expect(s.device.getSnapshot().screenFace).toBe('back');
+  hold(-180);
+  expect(events).toHaveBeenCalledTimes(2);
+  hold(90);
+  expect(s.device.getSnapshot().screenFace).toBe('edge');
+  hold(0, 90);
+  expect(s.device.getSnapshot().screenFace).toBe('edge');
+  hold(30, 20);
+  expect(s.device.getSnapshot().screenFace).toBe('front');
+  orient(null);
+  expect(s.device.getSnapshot().screenFace).toBeNull();
+  hold(180);
+  vi.advanceTimersByTime(1001);
+  expect(s.device.getSnapshot().screenFace).toBeNull();
+  hold(0);
+  s.stop();
+  expect(s.device.getSnapshot().screenFace).toBeNull();
+  s.destroy();
+  expect(vi.getTimerCount()).toBe(0);
 });

@@ -24,13 +24,13 @@
 
   const sensorOrder: SensorName[] = ['motion', 'orientation', 'location', 'pointer'];
   const sensorInfo: Record<SensorName, { title: string; group: string; api: string; action: string; guide: string; icon: string; unit: string }> = {
-    motion: { title: 'Motion', group: 'MOVEMENT', api: 'DeviceMotionEvent', action: 'Move, rotate, or shake your phone', guide: 'Try up/down, left/right, turning, or shaking.', icon: '↗', unit: 'm/s²' },
-    orientation: { title: 'Orientation', group: 'DIRECTION', api: 'DeviceOrientationEvent', action: 'Tilt forward, backward, left, or right', guide: 'Hold still briefly, then tilt your phone.', icon: '◉', unit: '°' },
+    motion: { title: 'Motion', group: 'MOVEMENT', api: 'DeviceMotionEvent', action: 'Trace a circle with your phone', guide: 'Screen-facing view: clockwise = right; counterclockwise = left.', icon: '↗', unit: 'm/s²' },
+    orientation: { title: 'Orientation', group: 'DIRECTION', api: 'DeviceOrientationEvent', action: 'Tilt forward, backward, left, or right', guide: '螢幕朝上為正面，朝下為反面；保持姿勢片刻即可辨識。', icon: '◉', unit: '°' },
     location: { title: 'Location', group: 'POSITION', api: 'Geolocation API', action: 'Find your current position', guide: 'Allow location access. Location works over HTTPS.', icon: '⌖', unit: 'lat / lng' },
     pointer: { title: 'Touch', group: 'PRESS ZONES', api: 'Pointer Events', action: 'Press the left or right side', guide: 'Hold either side; both can be pressed together. The center 100 px is inactive.', icon: '◎', unit: 'px' },
   };
-  const detectorGroups: Partial<Record<SensorName, DetectorName[]>> = { motion: ['direction', 'shake', 'movement', 'stationary', 'rotation'], orientation: ['tilt', 'tilt-direction', 'rotation'], pointer: ['left-press', 'right-press'] };
-  const detectorLabel: Record<DetectorName, string> = { direction: 'Direction', shake: 'Shake', movement: 'Move', stationary: 'Still', tilt: 'Tilt', 'tilt-direction': 'Tilt direction', rotation: 'Rotate', 'left-press': 'Left press', 'right-press': 'Right press' };
+  const detectorGroups: Partial<Record<SensorName, DetectorName[]>> = { motion: ['direction', 'shake', 'movement', 'stationary', 'rotation'], orientation: ['screen-face', 'tilt', 'tilt-direction', 'rotation'], pointer: ['left-press', 'right-press'] };
+  const detectorLabel: Record<DetectorName, string> = { 'screen-face': '正面／反面', direction: 'Direction', shake: 'Shake', movement: 'Move', stationary: 'Still', tilt: 'Tilt', 'tilt-direction': 'Tilt direction', rotation: 'Turn rate', 'left-press': 'Left press', 'right-press': 'Right press' };
   let detectors = $derived(detectorGroups[selectedSensor] ?? []);
   let detectorHeading = $derived(selectedSensor === 'pointer' ? 'TOUCH DETECTORS' : selectedSensor === 'orientation' ? 'ORIENTATION DETECTORS' : 'MOTION DETECTORS');
   let info = $derived(sensorInfo[selectedSensor]);
@@ -74,6 +74,7 @@
     if (name === 'movement') return detectorState.moving;
     if (name === 'stationary') return detectorState.stationary;
     if (name === 'tilt') return detectorState.tilting;
+    if (name === 'screen-face') return detectorState.screenFace === null ? null : detectorState.screenFace !== 'edge';
     if (name === 'tilt-direction') return detectorState.tiltDirection !== null;
     if (name === 'direction') return detectorState.direction !== null;
     if (name === 'rotation') return detectorState.rotating;
@@ -114,7 +115,7 @@
     </div>
 
     <div class="detail-layout detail-b">
-      <SensorVisual sensor={selectedSensor} {values} direction={detectorState.direction} tiltDirection={detectorState.tiltDirection} shaking={detectorState.shaking === true} leftPressed={detectorState.leftPressed} rightPressed={detectorState.rightPressed} {passed} />
+      <SensorVisual sensor={selectedSensor} {values} direction={detectorState.direction} tiltDirection={detectorState.tiltDirection} screenFace={detectorState.screenFace} shaking={detectorState.shaking === true} leftPressed={detectorState.leftPressed} rightPressed={detectorState.rightPressed} {passed} />
       <div class="instruction-card"><span class="instruction-icon">{info.icon}</span><div><strong>{info.action}</strong><p>{help}</p></div></div>
     </div>
 

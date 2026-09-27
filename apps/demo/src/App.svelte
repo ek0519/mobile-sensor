@@ -29,7 +29,7 @@
   let simSample = 0;
   let simEnvironment: ReturnType<typeof makeSimulation> | undefined;
   let unsubscribers: Array<() => void> = [];
-  const eventLabels: Record<DetectorName, string> = { direction: 'Direction', shake: 'Shake', movement: 'Movement', stationary: 'Stationary', tilt: 'Tilt', 'tilt-direction': 'Tilt direction', rotation: 'Rotation', 'left-press': 'Left press', 'right-press': 'Right press' };
+  const eventLabels: Record<DetectorName, string> = { 'screen-face': 'Screen face', direction: 'Direction', shake: 'Shake', movement: 'Movement', stationary: 'Stationary', tilt: 'Tilt', 'tilt-direction': 'Tilt direction', rotation: 'Rotation', 'left-press': 'Left press', 'right-press': 'Right press' };
   const directionLabels: Record<MotionDirection, string> = { up: 'UP ↑', down: 'DOWN ↓', left: 'LEFT ←', right: 'RIGHT →', 'rotate-left': 'ROTATE LEFT ↶', 'rotate-right': 'ROTATE RIGHT ↷' };
   const tiltLabels: Record<TiltDirection, string> = { forward: 'TILT FORWARD ↘', backward: 'TILT BACKWARD ↖', left: 'TILT LEFT ←', right: 'TILT RIGHT →' };
 
@@ -38,6 +38,7 @@
     unsubscribers = (Object.keys(eventLabels) as DetectorName[]).map(name => sensors.on(name, event => {
       let label = eventLabels[name];
       if (name === 'direction' && 'direction' in event && event.direction) label = directionLabels[event.direction];
+      if (event.screenFace) label = { front: '正面', back: '反面', edge: '側立／傾斜' }[event.screenFace];
       if (name === 'tilt-direction' && 'tiltDirection' in event && event.tiltDirection) label = tiltLabels[event.tiltDirection];
       events = [{ id: Date.now() + Math.random(), time: new Date(event.timestamp).toLocaleTimeString('en-US'), name: label, source: event.source, intensity: event.intensity ?? null, timestamp: event.timestamp }, ...events].slice(0, 200);
       if (name === 'shake' || name === 'movement' || name === 'direction' || name === 'left-press' || name === 'right-press') vibrate(name === 'left-press' || name === 'right-press' ? 25 : [35, 30, 45]);
@@ -102,22 +103,27 @@
   function fire(type: string, data: object) { simEnvironment?.win.dispatchEvent(Object.assign(new Event(type), data)); }
   function simulate() {
     simSample++;
-    const cycleSample = (simSample - 1) % 48;
+    const cycleSample = (simSample - 1) % 58;
     if (cycleSample === 0) fire('pointerdown', { pointerId: 101, pointerType: 'touch', clientX: 90, clientY: 230, pressure: 0.6 });
     if (cycleSample === 1) fire('pointerdown', { pointerId: 102, pointerType: 'touch', clientX: 300, clientY: 230, pressure: 0.6 });
     if (cycleSample === 24) fire('pointerup', { pointerId: 101, pointerType: 'touch', clientX: 90, clientY: 230, pressure: 0 });
     if (cycleSample === 25) fire('pointerup', { pointerId: 102, pointerType: 'touch', clientX: 300, clientY: 230, pressure: 0 });
-    const slot = Math.floor(cycleSample / 6);
-    const slotSample = cycleSample % 6;
-    const directions: MotionDirection[] = ['right', 'left', 'up', 'down', 'rotate-right', 'rotate-left'];
-    const action = slot < directions.length && slotSample === 2 ? directions[slot]! : null;
-    const shake = slot === 6 && (slotSample === 2 || slotSample === 3);
+    const linearSlot = Math.floor(cycleSample / 6);
+    const linearSample = cycleSample % 6;
+    const directions: MotionDirection[] = ['right', 'left', 'up', 'down'];
+    const action = linearSlot < directions.length && linearSample === 2 ? directions[linearSlot]! : null;
+    const circleRight = cycleSample >= 24 && cycleSample <= 36;
+    const circleLeft = cycleSample >= 38 && cycleSample <= 50;
+    const circleStep = circleRight ? cycleSample - 24 : cycleSample - 38;
+    const circleAngle = (circleRight ? -1 : 1) * Math.PI * 2 * circleStep / 12;
+    const circleX = (circleRight || circleLeft) ? 4 * Math.cos(circleAngle) : null;
+    const circleY = (circleRight || circleLeft) ? 4 * Math.sin(circleAngle) : null;
+    const shake = cycleSample === 54 || cycleSample === 55;
     const wave = Math.sin(simSample / 3);
-    const shakeAcceleration = slotSample === 2 ? 18 : -18;
-    const x = shake ? shakeAcceleration : action === 'right' ? 5 : action === 'left' ? -5 : wave * 0.35;
-    const y = shake ? 0 : action === 'up' ? 5 : action === 'down' ? -5 : Math.cos(simSample / 4) * 0.2;
-    const alpha = action === 'rotate-right' ? 45 : action === 'rotate-left' ? -45 : 2;
-    fire('devicemotion', { acceleration: { x, y, z: 0.1 }, accelerationIncludingGravity: { x: wave * 2, y: 3, z: 9.5 }, rotationRate: { alpha, beta: 3, gamma: 1 }, interval: 16 });
+    const shakeAcceleration = cycleSample === 54 ? 18 : -18;
+    const x = shake ? shakeAcceleration : circleX ?? (action === 'right' ? -5 : action === 'left' ? 5 : wave * 0.35);
+    const y = shake ? 0 : circleY ?? (action === 'up' ? -5 : action === 'down' ? 5 : Math.cos(simSample / 4) * 0.2);
+    fire('devicemotion', { acceleration: { x, y, z: 0.1 }, accelerationIncludingGravity: { x: wave * 2, y: 3, z: 9.5 }, rotationRate: { alpha: 2, beta: 3, gamma: 1 }, interval: 16 });
     const tiltCycle = (simSample - 1) % 32;
     const tiltSlot = Math.floor(tiltCycle / 8);
     const tilted = tiltCycle % 8 >= 4;

@@ -50,12 +50,12 @@ test('live Motion reports missing sensor data honestly and shows a readable dire
   await expect(page.locator('.result-copy small')).toHaveText('No motion data yet. Allow access, then move your phone.');
 
   await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('devicemotion'), {
-    acceleration: { x: 4, y: 0, z: 0 },
-    accelerationIncludingGravity: { x: 4, y: 0, z: 9.8 },
+    acceleration: { x: -4, y: 0, z: 0 },
+    accelerationIncludingGravity: { x: -4, y: 0, z: 9.8 },
     rotationRate: { alpha: 0, beta: 0, gamma: 0 },
     interval: 16,
   })));
-  await expect(page.locator('.reading-summary')).toContainText('X 4.0');
+  await expect(page.locator('.reading-summary')).toContainText('X -4.0');
   await expect(page.locator('.event-row strong')).toHaveText('RIGHT →');
   await expect(page.locator('.motion-direction strong')).toHaveText('MOVE RIGHT →');
   await expect(page.locator('.motion-direction strong')).toHaveCSS('font-size', '24px');
@@ -73,6 +73,7 @@ test('demo motion produces a visual response, success light, haptic option, and 
   await page.getByRole('button', { name: /Motion/ }).click();
 
   await expect(page.getByRole('heading', { name: 'Test Motion' })).toBeVisible();
+  await expect(page.locator('.instruction-card p')).toHaveText('Screen-facing view: clockwise = right; counterclockwise = left.');
   await page.getByRole('checkbox', { name: 'Haptic feedback' }).check();
   await expect(page.getByRole('checkbox', { name: 'Haptic feedback' })).toBeChecked();
   expect(await page.evaluate(() => (window as Window & { vibrateCalls?: number }).vibrateCalls)).toBeGreaterThan(0);
@@ -83,7 +84,7 @@ test('demo motion produces a visual response, success light, haptic option, and 
   await expect(page.locator('[data-visual="motion"] .motion-trail')).toBeVisible();
   await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'right', { timeout: 4000 });
   await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'rotate-right', { timeout: 6000 });
-  await expect(page.locator('.event-row strong')).toHaveText('Shake', { timeout: 8000 });
+  await expect(page.locator('.detector-chips span').filter({ hasText: /^Shake$/ })).toHaveClass(/active/, { timeout: 8000 });
   await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'shake');
 });
 

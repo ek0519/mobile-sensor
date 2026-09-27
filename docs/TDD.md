@@ -112,3 +112,16 @@ Removed NES.css from the demo dependency, import, and markup. The Morandi layout
 - Red: a live `devicemotion` event updated the raw signal and Direction event log, while the visual direction stayed at `WAITING`; an all-null event was incorrectly labeled `ACTIVE`.
 - Green: the live screen now subscribes to device state on mount, reports “WAITING FOR DATA” until a usable reading arrives, explains permission/HTTPS steps, and displays explicit movement directions at 24px.
 - Verification: Vitest 26 passed; TypeScript/Svelte diagnostics had 0 errors and warnings; Playwright 7 passed, including the live `devicemotion` path and `MOVE RIGHT`; packed packages, production build, and `git diff --check` passed.
+
+## Motion direction polarity correction — 2026-09-28
+
+- Red: `rtk bun run test -- tests/detectors.test.ts -t 'preserves motion coordinates'` received `left` for the expected rightward gesture at X = -4; `rtk bun run test -- tests/detectors.test.ts -t 'negative vertical acceleration'` received `down` for the expected upward gesture at Y = -4.
+- Green: inverted only the four linear movement labels, kept raw X/Y values unchanged, and aligned the motion visual and demo-generated gestures with those labels. Both regression tests passed; all four directions and existing cooldown behavior passed.
+- Verification: Vitest 27 passed; Playwright 7 passed including Live Motion direction output; TypeScript/Svelte diagnostics had 0 errors and warnings; production build and packed-package ESM/type checks passed; `git diff --check` passed.
+
+## Hand-held circular motion direction — 2026-09-28
+
+- Red: the prior detector classified a single `rotationRate.alpha` sample as `rotate-right`, while it did not recognize a circular X/Y acceleration trace.
+- Green: the detector now requires a coherent X/Y acceleration sweep and reports clockwise as `rotate-right` and counterclockwise as `rotate-left`; the separate `rotation` event remains angular-rate magnitude only. The focused detector test passed for both circle directions and confirms a single alpha sample does not classify either direction.
+- Demo coverage feeds clockwise and counterclockwise circle traces through the same core detector and displays the viewing convention in the Motion instructions. Shake E2E validation checks the detector's active state so unrelated newer orientation events cannot mask the trigger in the latest-event display.
+- Verification: Vitest 28 passed; Playwright 7 passed; TypeScript/Svelte diagnostics had 0 errors and warnings; all four tarballs installed in an isolated consumer and their ESM imports and declarations compiled; production build and `git diff --check` passed.
