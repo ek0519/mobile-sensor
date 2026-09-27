@@ -1,66 +1,65 @@
 import { test, expect } from '@playwright/test';
-test('demo displays simulated signals and triggered detectors, and controls their lifecycle', async ({ page }) => {
-  await page.setViewportSize({ width: 716, height: 798 }); await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Sensor Signals' })).toBeVisible();
-  await expect(page.locator('[data-sensor="motion"]')).toContainText(/Waiting for data|Not supported/);
-  await page.getByRole('button', { name: 'Demo' }).click();
-  await page.getByRole('button', { name: 'Enable motion' }).click();
-  await expect(page.locator('[data-sensor="motion"]')).not.toContainText('Waiting for data', { timeout: 3000 });
-  await expect(page.locator('.detector-card').filter({ hasText: 'Shake' }).getByText('Triggered')).toBeVisible({ timeout: 8000 });
-  await expect(page.locator('.event-list li').first()).toBeVisible({ timeout: 8000 });
-  await page.getByRole('button', { name: 'Events' }).click();
-  await expect(page.getByRole('button', { name: 'Events' })).toHaveAttribute('aria-current', 'page');
-  expect(await page.locator('[data-page="1"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  expect(await page.locator('.event-list li').count()).toBeLessThanOrEqual(2);
-  await page.getByRole('button', { name: 'Pause' }).click(); await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible();
-  await page.getByRole('button', { name: 'Resume' }).click(); await page.getByRole('button', { name: /Clear/ }).click();
-  await expect(page.getByText('No events yet.')).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+test('selecting a sensor opens its test instruction and details', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: 'Choose a sensor' })).toBeVisible();
+  await page.getByRole('button', { name: 'Location', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Location', exact: true })).toBeVisible();
+  await expect(page.getByText('Request your current position')).toBeVisible();
+  await expect(page.getByText('Allow location access. Location requires HTTPS.')).toBeVisible();
 });
 
-test('uses the same centered phone layout on desktop with no vertical scrolling', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 }); await page.goto('/');
+test('simulated motion turns the pass light green and reports detector events', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Demo', exact: true }).click();
+  await page.getByRole('button', { name: 'Allow & start test' }).click();
+
+  await expect(page.getByText('CHECK PASSED')).toBeVisible({ timeout: 4000 });
+  await expect(page.locator('.status-light.green')).toBeVisible();
+  await expect(page.locator('.event-list').getByText('Shake', { exact: true })).toBeVisible({ timeout: 8000 });
+
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await expect(page.locator('.app-status strong')).toHaveText('PAUSED');
+  await page.getByRole('button', { name: 'Resume' }).click();
+  await page.getByRole('button', { name: 'CLEAR' }).click();
+  await expect(page.getByText('Demo signals will trigger sample events.')).toBeVisible();
+});
+
+test('simulated location is opt-in and shows a successful reading after selection', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Demo', exact: true }).click();
+  await page.getByRole('button', { name: 'Location', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Allow & start test' })).toBeVisible();
+  await page.getByRole('button', { name: 'Allow & start test' }).click();
+
+  await expect(page.getByText('CHECK PASSED')).toBeVisible({ timeout: 4000 });
+  await expect(page.getByText('25.03300, 121.56540')).toBeVisible();
+  await expect(page.locator('.status-light.green')).toBeVisible();
+});
+
+test('keeps the mobile test flow inside the centered phone viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
   const phone = page.getByTestId('device-frame');
   await expect(phone).toBeVisible();
-  const box = await phone.boundingBox();
-  expect(box?.width).toBe(430); expect(box?.height).toBe(900);
-  expect(Math.abs((box!.x + box!.width / 2) - 720)).toBeLessThanOrEqual(1);
-  expect(Math.abs((box!.y + box!.height / 2) - 500)).toBeLessThanOrEqual(1);
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.getByTestId('permission-guidance')).toContainText('Use on your phone');
-  await expect(page.getByTestId('permission-guidance')).toContainText('Allow sensor access');
+  const desktopBox = await phone.boundingBox();
+  expect(desktopBox?.width).toBe(430);
+  expect(desktopBox?.height).toBe(900);
+  expect(Math.abs((desktopBox!.x + desktopBox!.width / 2) - 720)).toBeLessThanOrEqual(1);
+  expect(Math.abs((desktopBox!.y + desktopBox!.height / 2) - 500)).toBeLessThanOrEqual(1);
+  await expect(page.getByRole('heading', { name: 'Choose a sensor' })).toBeVisible();
   expect(await phone.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  await expect(page.getByRole('navigation', { name: 'Sensor pages' })).toBeVisible();
-  expect(await page.getByTestId('horizontal-pages').evaluate(element => getComputedStyle(element).display)).toBe('flex');
-  expect(await page.locator('[data-page="0"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  expect(await page.locator('[data-page="1"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= document.documentElement.clientHeight)).toBe(true);
-  await page.setViewportSize({ width: 716, height: 798 });
-  const compactDesktopBox = await phone.boundingBox();
-  expect(compactDesktopBox?.width).toBe(430); expect(compactDesktopBox?.height).toBe(758);
-  expect(await phone.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  expect(await page.locator('[data-page="0"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  expect(await page.locator('[data-page="1"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= document.documentElement.clientHeight)).toBe(true);
+
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileBox = await phone.boundingBox();
-  expect(mobileBox?.width).toBe(390); expect(mobileBox?.height).toBe(844);
-  expect(await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(53, 57, 52)');
-});
-
-test('keeps the six sensor cards on a swipeable page and switches to events horizontally', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/');
-  const pages = page.getByTestId('horizontal-pages');
-  await expect(pages).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sensors' })).toHaveAttribute('aria-current', 'page');
-  expect(await pages.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-  expect(await pages.evaluate(element => getComputedStyle(element).scrollSnapType)).toContain('x');
-  await expect(page.locator('[data-page="0"] [data-sensor="visibility"]')).toBeVisible();
-  expect(await page.locator('[data-page="0"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  await page.getByRole('button', { name: 'Events' }).click();
-  await expect(page.getByRole('button', { name: 'Events' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-page="1"]')).toContainText('Detected Events');
-  expect(await page.locator('[data-page="1"]').evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
-  await page.getByRole('button', { name: 'Sensors' }).click();
-  await expect(page.getByRole('button', { name: 'Sensors' })).toHaveAttribute('aria-current', 'page');
+  expect(mobileBox?.width).toBe(390);
+  expect(mobileBox?.height).toBe(844);
+  expect(await phone.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.locator('.sensor-picker').evaluate(element => getComputedStyle(element).overflowX)).toBe('auto');
 });
