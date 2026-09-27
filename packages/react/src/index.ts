@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import type { Channel, Sensors } from '@solitudo-studio/core';
+import type { Channel, Sensors } from '@mobile-sensor/core';
 export interface SamplingOptions { fps?: number }
 export function useSensor<T>(source: Channel<T>, options: SamplingOptions = {}): T {
   const fps = options.fps ?? 10;

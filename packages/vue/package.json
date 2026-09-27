@@ -1,7 +1,7 @@
 {
-  "name": "@solitudo-studio/vue",
+  "name": "@mobile-sensor/vue",
   "version": "0.1.0",
-  "description": "Vue composables for browser and mobile sensor data from @solitudo-studio/core.",
+  "description": "Vue composables for browser and mobile sensor data from @mobile-sensor/core.",
   "keywords": ["vue", "composables", "browser-sensors", "device-motion", "mobile"],
   "homepage": "https://github.com/ek0519/mobile-sensor/tree/main/packages/vue#readme",
   "repository": {
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@solitudo-studio/core": "0.1.0"
+    "@mobile-sensor/core": "0.1.0"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

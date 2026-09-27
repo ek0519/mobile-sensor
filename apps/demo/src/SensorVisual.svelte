@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LocationData, MotionData, OrientationData, PointerData, SensorName, ViewportData } from '@solitudo-studio/core';
+  import type { LocationData, MotionData, OrientationData, PointerData, SensorName, ViewportData } from '@mobile-sensor/core';
 
   type Values = { motion: MotionData | null; orientation: OrientationData | null; location: LocationData | null; pointer: PointerData | null; viewport: ViewportData | null; visibility: 'visible' | 'hidden' | null };
   let { sensor, values, passed }: { sensor: SensorName; values: Values; passed: boolean } = $props();

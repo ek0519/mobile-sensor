@@ -1,7 +1,7 @@
 {
-  "name": "@solitudo-studio/react",
+  "name": "@mobile-sensor/react",
   "version": "0.1.0",
-  "description": "React hooks for browser and mobile sensor data from @solitudo-studio/core.",
+  "description": "React hooks for browser and mobile sensor data from @mobile-sensor/core.",
   "keywords": ["react", "browser-sensors", "device-motion", "mobile"],
   "homepage": "https://github.com/ek0519/mobile-sensor/tree/main/packages/react#readme",
   "repository": {
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@solitudo-studio/core": "0.1.0"
+    "@mobile-sensor/core": "0.1.0"
   },
   "peerDependencies": {
     "react": "^18.3.0 || ^19.0.0"

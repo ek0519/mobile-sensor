@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSensors } from '@solitudo-studio/core';
-  import type { DeviceState, DetectorName, SensorName } from '@solitudo-studio/core';
-  import { createSensorStores } from '@solitudo-studio/svelte';
+  import { createSensors } from '@mobile-sensor/core';
+  import type { DeviceState, DetectorName, SensorName } from '@mobile-sensor/core';
+  import { createSensorStores } from '@mobile-sensor/svelte';
   import SensorGalleryFlow from './SensorGalleryFlow.svelte';
 
   let simulated = $state(false);

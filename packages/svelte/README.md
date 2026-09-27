@@ -1,6 +1,6 @@
-# @solitudo-studio/svelte
+# @mobile-sensor/svelte
 
-Readable store adapters for an existing `@solitudo-studio/core` instance. Svelte 5 is a peer dependency. Store subscriptions clean up with the consuming component.
+Readable store adapters for an existing `@mobile-sensor/core` instance. Svelte 5 is a peer dependency. Store subscriptions clean up with the consuming component.
 
 ```svelte
 <script>

@@ -1,5 +1,5 @@
 {
-  "name": "@solitudo-studio/core",
+  "name": "@mobile-sensor/core",
   "version": "0.1.0",
   "description": "Framework-independent browser sensor access and heuristic motion event detection.",
   "keywords": ["browser-sensors", "device-motion", "device-orientation", "geolocation", "mobile"],

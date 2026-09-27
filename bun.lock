@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "mobile-sensor",
+      "name": "@mobile-sensor/core",
       "devDependencies": {
         "@playwright/test": "^1.55.0",
         "@sveltejs/vite-plugin-svelte": "^5.1.1",
@@ -26,42 +26,42 @@
       },
     },
     "apps/demo": {
-      "name": "@solitudo-studio/demo",
+      "name": "mobile-sensor-demo",
       "dependencies": {
-        "@solitudo-studio/core": "workspace:*",
-        "@solitudo-studio/svelte": "workspace:*",
+        "@mobile-sensor/core": "workspace:*",
+        "@mobile-sensor/svelte": "workspace:*",
         "svelte": "^5.39.0",
       },
     },
     "packages/core": {
-      "name": "@solitudo-studio/core",
+      "name": "@mobile-sensor/core",
       "version": "0.1.0",
     },
     "packages/react": {
-      "name": "@solitudo-studio/react",
+      "name": "@mobile-sensor/react",
       "version": "0.1.0",
       "dependencies": {
-        "@solitudo-studio/core": "0.1.0",
+        "@mobile-sensor/core": "0.1.0",
       },
       "peerDependencies": {
         "react": "^18.3.0 || ^19.0.0",
       },
     },
     "packages/svelte": {
-      "name": "@solitudo-studio/svelte",
+      "name": "@mobile-sensor/svelte",
       "version": "0.1.0",
       "dependencies": {
-        "@solitudo-studio/core": "0.1.0",
+        "@mobile-sensor/core": "0.1.0",
       },
       "peerDependencies": {
         "svelte": "^5.0.0",
       },
     },
     "packages/vue": {
-      "name": "@solitudo-studio/vue",
+      "name": "@mobile-sensor/vue",
       "version": "0.1.0",
       "dependencies": {
-        "@solitudo-studio/core": "0.1.0",
+        "@mobile-sensor/core": "0.1.0",
       },
       "peerDependencies": {
         "vue": "^3.5.0",
@@ -155,15 +155,13 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@solitudo-studio/core": ["@solitudo-studio/core@workspace:packages/core"],
+    "@mobile-sensor/core": ["@mobile-sensor/core@workspace:packages/core"],
 
-    "@solitudo-studio/demo": ["@solitudo-studio/demo@workspace:apps/demo"],
+    "@mobile-sensor/react": ["@mobile-sensor/react@workspace:packages/react"],
 
-    "@solitudo-studio/react": ["@solitudo-studio/react@workspace:packages/react"],
+    "@mobile-sensor/svelte": ["@mobile-sensor/svelte@workspace:packages/svelte"],
 
-    "@solitudo-studio/svelte": ["@solitudo-studio/svelte@workspace:packages/svelte"],
-
-    "@solitudo-studio/vue": ["@solitudo-studio/vue@workspace:packages/vue"],
+    "@mobile-sensor/vue": ["@mobile-sensor/vue@workspace:packages/vue"],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 
@@ -374,6 +372,8 @@
     "lz-string": ["lz-string@1.5.0", "", { "bin": { "lz-string": "bin/bin.js" } }, "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
+
+    "mobile-sensor-demo": ["mobile-sensor-demo@workspace:apps/demo"],
 
     "mri": ["mri@1.2.0", "", {}, "sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA=="],
 

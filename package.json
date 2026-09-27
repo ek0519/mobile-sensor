@@ -13,7 +13,8 @@
     "build": "bun run scripts/build.ts && vite build --config apps/demo/vite.config.ts",
     "dev": "vite --config apps/demo/vite.config.ts --host 0.0.0.0",
     "test:e2e": "playwright test",
-    "test:pack": "bun run scripts/pack-smoke.ts"
+    "test:pack": "bun run scripts/pack-smoke.ts",
+    "publish:packages": "bun run build && bun run test:pack && (npm view @mobile-sensor/core@0.1.0 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/core@0.1.0' && npm publish ./packages/core --access public)) && (npm view @mobile-sensor/react@0.1.0 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/react@0.1.0' && npm publish ./packages/react --access public)) && (npm view @mobile-sensor/vue@0.1.0 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/vue@0.1.0' && npm publish ./packages/vue --access public)) && (npm view @mobile-sensor/svelte@0.1.0 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/svelte@0.1.0' && npm publish ./packages/svelte --access public))"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

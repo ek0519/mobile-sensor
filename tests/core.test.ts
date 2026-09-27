@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { environment, dispatch } from './environment';
-import { createSensors } from '@solitudo-studio/core';
+import { createSensors } from '@mobile-sensor/core';
 
 afterEach(() => vi.useRealTimers());
 describe('sensor channels', () => {

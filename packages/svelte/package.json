@@ -1,7 +1,7 @@
 {
-  "name": "@solitudo-studio/svelte",
+  "name": "@mobile-sensor/svelte",
   "version": "0.1.0",
-  "description": "Svelte stores for browser and mobile sensor data from @solitudo-studio/core.",
+  "description": "Svelte stores for browser and mobile sensor data from @mobile-sensor/core.",
   "keywords": ["svelte", "stores", "browser-sensors", "device-motion", "mobile"],
   "homepage": "https://github.com/ek0519/mobile-sensor/tree/main/packages/svelte#readme",
   "repository": {
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@solitudo-studio/core": "0.1.0"
+    "@mobile-sensor/core": "0.1.0"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

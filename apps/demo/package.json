@@ -1,10 +1,10 @@
 {
-  "name": "@solitudo-studio/demo",
+  "name": "mobile-sensor-demo",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@solitudo-studio/core": "workspace:*",
-    "@solitudo-studio/svelte": "workspace:*",
+    "@mobile-sensor/core": "workspace:*",
+    "@mobile-sensor/svelte": "workspace:*",
     "svelte": "^5.39.0"
   }
 }

@@ -1,7 +1,7 @@
-# @solitudo-studio/core
+# @mobile-sensor/core
 
 Framework-independent sensor channels, device state, permission requests, browser lifecycle and detectors. See the repository README for the full public interface and demo.
 
 ```sh
-npm install @solitudo-studio/core
+npm install @mobile-sensor/core
 ```
