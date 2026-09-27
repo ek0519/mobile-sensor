@@ -1,4 +1,4 @@
-import type { SensorEnvironment } from '@mobile-sensors/core';
+import type { SensorEnvironment } from '@solitudo-studio/core';
 export function dispatch(target: EventTarget, type: string, data: object = {}) {
   target.dispatchEvent(Object.assign(new Event(type), data));
 }

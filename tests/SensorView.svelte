@@ -1,1 +1,1 @@
-<script lang="ts">import type { Readable } from 'svelte/store'; import type { MotionData } from '@mobile-sensors/core'; let { motion }: { motion: Readable<MotionData | null> } = $props();</script><span>{$motion?.acceleration.x ?? 'unknown'}</span>
+<script lang="ts">import type { Readable } from 'svelte/store'; import type { MotionData } from '@solitudo-studio/core'; let { motion }: { motion: Readable<MotionData | null> } = $props();</script><span>{$motion?.acceleration.x ?? 'unknown'}</span>

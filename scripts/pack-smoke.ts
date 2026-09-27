@@ -13,14 +13,14 @@ try {
   }
   await $`npm install --no-audit --no-fund ${paths}`.cwd(temp);
   for (const name of ['core','react','vue','svelte']) {
-    const pkg = JSON.parse(await readFile(join(temp, 'node_modules', '@mobile-sensors', name, 'package.json'), 'utf8'));
+    const pkg = JSON.parse(await readFile(join(temp, 'node_modules', '@solitudo-studio', name, 'package.json'), 'utf8'));
     if (!pkg.exports?.['.']?.import || !pkg.exports?.['.']?.types) throw new Error(`Missing JS/type exports for ${name}`);
-    await readFile(join(temp, 'node_modules', '@mobile-sensors', name, 'dist', 'index.js'));
-    await readFile(join(temp, 'node_modules', '@mobile-sensors', name, 'dist', 'index.d.ts'));
+    await readFile(join(temp, 'node_modules', '@solitudo-studio', name, 'dist', 'index.js'));
+    await readFile(join(temp, 'node_modules', '@solitudo-studio', name, 'dist', 'index.d.ts'));
   }
-  await writeFile(join(temp, 'consumer.mjs'), "import { createSensors } from '@mobile-sensors/core'; import { useSensor } from '@mobile-sensors/react'; import { useMotion as useVueMotion } from '@mobile-sensors/vue'; import { createSensorStores } from '@mobile-sensors/svelte'; if (![createSensors,useSensor,useVueMotion,createSensorStores].every(x => typeof x === 'function')) throw new Error('Public import unavailable'); console.log('All four packed packages import and expose ESM plus declarations.');");
+  await writeFile(join(temp, 'consumer.mjs'), "import { createSensors } from '@solitudo-studio/core'; import { useSensor } from '@solitudo-studio/react'; import { useMotion as useVueMotion } from '@solitudo-studio/vue'; import { createSensorStores } from '@solitudo-studio/svelte'; if (![createSensors,useSensor,useVueMotion,createSensorStores].every(x => typeof x === 'function')) throw new Error('Public import unavailable'); console.log('All four packed packages import and expose ESM plus declarations.');");
   await $`bun run consumer.mjs`.cwd(temp);
-  await writeFile(join(temp, 'consumer.ts'), "import { createSensors } from '@mobile-sensors/core'; import { useSensor } from '@mobile-sensors/react'; import { useMotion as useVueMotion } from '@mobile-sensors/vue'; import { createSensorStores } from '@mobile-sensors/svelte'; const sensors = createSensors(); useSensor(sensors.motion); useVueMotion(sensors).value; createSensorStores(sensors).motion.subscribe(value => value?.acceleration.x); ");
+  await writeFile(join(temp, 'consumer.ts'), "import { createSensors } from '@solitudo-studio/core'; import { useSensor } from '@solitudo-studio/react'; import { useMotion as useVueMotion } from '@solitudo-studio/vue'; import { createSensorStores } from '@solitudo-studio/svelte'; const sensors = createSensors(); useSensor(sensors.motion); useVueMotion(sensors).value; createSensorStores(sensors).motion.subscribe(value => value?.acceleration.x); ");
   await $`${process.execPath} ${root}/node_modules/typescript/bin/tsc --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution Bundler ${join(temp, 'consumer.ts')}`.cwd(temp);
   console.log('Packed JavaScript imports and consumer TypeScript declarations compile.');
 } finally { await rm(temp, { recursive: true, force: true }); }

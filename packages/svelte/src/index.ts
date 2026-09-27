@@ -1,5 +1,5 @@
 import { readable } from 'svelte/store';
-import type { Channel, Sensors, DetectorEvent, DetectorName } from '@mobile-sensors/core';
+import type { Channel, Sensors, DetectorEvent, DetectorName } from '@solitudo-studio/core';
 import type { Readable } from 'svelte/store';
 export interface SamplingOptions { fps?: number }
 export function sensorStore<T>(source: Channel<T>, options: SamplingOptions = {}): Readable<T> {

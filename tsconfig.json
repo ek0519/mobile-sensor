@@ -22,16 +22,16 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@mobile-sensors/core": [
+      "@solitudo-studio/core": [
         "packages/core/src/index.ts"
       ],
-      "@mobile-sensors/react": [
+      "@solitudo-studio/react": [
         "packages/react/src/index.ts"
       ],
-      "@mobile-sensors/vue": [
+      "@solitudo-studio/vue": [
         "packages/vue/src/index.ts"
       ],
-      "@mobile-sensors/svelte": [
+      "@solitudo-studio/svelte": [
         "packages/svelte/src/index.ts"
       ]
     }

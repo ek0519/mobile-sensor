@@ -1,7 +1,7 @@
 import { it, expect, vi } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
-import { createSensors } from '@mobile-sensors/core';
-import { createSensorStores } from '@mobile-sensors/svelte';
+import { createSensors } from '@solitudo-studio/core';
+import { createSensorStores } from '@solitudo-studio/svelte';
 import { environment, dispatch } from './environment';
 import View from './SensorView.svelte';
 it('provides readable stores for Svelte and cleans up each consumer on unmount', async () => {

@@ -7,10 +7,10 @@
       "svelte"
     ],
     "paths": {
-      "@mobile-sensors/core": [
+      "@solitudo-studio/core": [
         "packages/core/src/index.ts"
       ],
-      "@mobile-sensors/svelte": [
+      "@solitudo-studio/svelte": [
         "packages/svelte/src/index.ts"
       ]
     },

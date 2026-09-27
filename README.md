@@ -19,17 +19,17 @@ Open the Vite URL on a phone connected to the same local network to try the simu
 
 Run `bun run build` to generate ESM output and TypeScript declarations for all four packages. Each package can be packed independently. The package names are:
 
-- `@mobile-sensors/core`: Framework-independent Browser Sensor APIs, permissions, lifecycle management, normalized data, and event detection.
-- `@mobile-sensors/react`: React hooks; peer dependency: React 18 or 19.
-- `@mobile-sensors/vue`: Vue composables; peer dependency: Vue 3.5+.
-- `@mobile-sensors/svelte`: Svelte readable stores; peer dependency: Svelte 5.
+- `@solitudo-studio/core`: Framework-independent Browser Sensor APIs, permissions, lifecycle management, normalized data, and event detection.
+- `@solitudo-studio/react`: React hooks; peer dependency: React 18 or 19.
+- `@solitudo-studio/vue`: Vue composables; peer dependency: Vue 3.5+.
+- `@solitudo-studio/svelte`: Svelte readable stores; peer dependency: Svelte 5.
 
 The packages have not been published to npm. Before publishing, pack each package from its directory with `bun pm pack`, then install the resulting tarball in an application. Run `bun run test:pack` to verify package exports and declarations after installing all four tarballs in an isolated consumer project.
 
 ## Core Usage
 
 ```ts
-import { createSensors } from '@mobile-sensors/core';
+import { createSensors } from '@solitudo-studio/core';
 
 const sensors = createSensors();
 
@@ -63,13 +63,13 @@ Detected event names are `shake`, `movement`, `stationary`, `tilt`, and `rotatio
 ## Framework Adapters
 
 ```tsx
-import { useMotion } from '@mobile-sensors/react';
+import { useMotion } from '@solitudo-studio/react';
 // React: subscribes through an external store, with a default update rate of 10 FPS.
 const motion = useMotion(sensors, { fps: 8 });
 ```
 
 ```ts
-import { useMotion } from '@mobile-sensors/vue';
+import { useMotion } from '@solitudo-studio/vue';
 // Vue: returns a readonly shallow ref created inside setup().
 const motion = useMotion(sensors, { fps: 8 });
 ```
@@ -77,8 +77,8 @@ const motion = useMotion(sensors, { fps: 8 });
 ```svelte
 <!-- Svelte 5: the store unsubscribes with the component's subscription lifecycle. -->
 <script>
-  import { createSensors } from '@mobile-sensors/core';
-  import { createSensorStores } from '@mobile-sensors/svelte';
+  import { createSensors } from '@solitudo-studio/core';
+  import { createSensorStores } from '@solitudo-studio/svelte';
   const sensors = createSensors();
   const { motion } = createSensorStores(sensors);
 </script>

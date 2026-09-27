@@ -1,5 +1,5 @@
 import { it, expect, vi, afterEach } from 'vitest';
-import { createSensors } from '@mobile-sensors/core';
+import { createSensors } from '@solitudo-studio/core';
 import { environment, dispatch } from './environment';
 afterEach(() => vi.useRealTimers());
 it('detects alternating shake peaks before UI sampling, with cooldown and no noise triggers', async () => {

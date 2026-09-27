@@ -1,6 +1,6 @@
 import { shallowRef, shallowReadonly, onScopeDispose, onMounted } from 'vue';
 import type { ShallowRef } from 'vue';
-import type { Channel, Sensors } from '@mobile-sensors/core';
+import type { Channel, Sensors } from '@solitudo-studio/core';
 export interface SamplingOptions { fps?: number }
 export function useSensor<T>(source: Channel<T>, options: SamplingOptions = {}): Readonly<ShallowRef<T>> {
   const fps = options.fps ?? 10;

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSensors } from '@mobile-sensors/core';
-  import type { Sensors, SensorName, DeviceState } from '@mobile-sensors/core';
-  import { createSensorStores } from '@mobile-sensors/svelte';
+  import { createSensors } from '@solitudo-studio/core';
+  import type { Sensors, SensorName, DeviceState } from '@solitudo-studio/core';
+  import { createSensorStores } from '@solitudo-studio/svelte';
   let simulated = $state(false);
   const initialSensors = createSensors();
   let sensors = $state<Sensors>(initialSensors);

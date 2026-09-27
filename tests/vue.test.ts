@@ -1,8 +1,8 @@
 import { it, expect, vi } from 'vitest';
 import { createApp, createSSRApp, h, nextTick } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import { createSensors } from '@mobile-sensors/core';
-import { useMotion } from '@mobile-sensors/vue';
+import { createSensors } from '@solitudo-studio/core';
+import { useMotion } from '@solitudo-studio/vue';
 import { environment, dispatch } from './environment';
 it('renders Vue refs with sampling, SSR and scoped unsubscribe', async () => {
   vi.useFakeTimers(); const env = environment(); const s = createSensors({ environment: env });

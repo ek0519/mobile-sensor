@@ -2,8 +2,8 @@ import React from 'react';
 import { it, expect, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { createSensors } from '@mobile-sensors/core';
-import { useMotion } from '@mobile-sensors/react';
+import { createSensors } from '@solitudo-studio/core';
+import { useMotion } from '@solitudo-studio/react';
 import { environment, dispatch } from './environment';
 it('renders sampled motion, supports SSR, and unmounts without stopping another consumer', async () => {
   vi.useFakeTimers(); const env = environment(); const a = createSensors({ environment: env }); const b = createSensors({ environment: null });
