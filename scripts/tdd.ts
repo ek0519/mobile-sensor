@@ -1,0 +1,10 @@
+const [label, ...command] = process.argv.slice(2);
+const p = Bun.spawn(command.length ? command : ['bun', 'run', 'test'], { stdout: 'pipe', stderr: 'pipe' });
+const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
+console.log(out + err);
+const output = out + err;
+const useful = output.split('\n').filter(line => /(?:Failed Tests|Failed Suites| Test Files |      Tests |error: script|→ )/.test(line)).slice(-6).join('\n');
+const previous = await Bun.file('docs/TDD.md').text();
+await Bun.write('docs/TDD.md', `${previous}\n## ${label} — exit ${code}\n\n${useful || 'No test summary was printed.'}\n`);
+process.exit(code);
+export {};

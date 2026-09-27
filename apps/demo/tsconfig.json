@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node",
+      "svelte"
+    ],
+    "paths": {
+      "@mobile-sensors/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@mobile-sensors/svelte": [
+        "packages/svelte/src/index.ts"
+      ]
+    },
+    "baseUrl": "../.."
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "vite.config.ts"
+  ]
+}

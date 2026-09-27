@@ -1,0 +1,10 @@
+{
+  "name": "@mobile-sensors/demo",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mobile-sensors/core": "workspace:*",
+    "@mobile-sensors/svelte": "workspace:*",
+    "svelte": "^5.39.0"
+  }
+}
