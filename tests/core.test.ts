@@ -32,7 +32,7 @@ it('normalizes motion through the public channel and unsubscribes without stoppi
   sensors.destroy();
 });
 
-it('collects six signals while location stays opt-in and missing fields stay null', async () => {
+it('collects four signals while location stays opt-in and missing fields stay null', async () => {
   const env = environment();
   let locate: PositionCallback = () => {};
   const clearWatch = vi.fn();
@@ -41,13 +41,13 @@ it('collects six signals while location stays opt-in and missing fields stay nul
   const sensors = createSensors({ environment: env });
   await sensors.start();
   expect(watchPosition).not.toHaveBeenCalled();
-  expect(sensors.capabilities()).toMatchObject({ motion: true, orientation: true, location: true, pointer: true, viewport: true, visibility: true });
+  expect(sensors.capabilities()).toEqual({ motion: true, orientation: true, location: true, pointer: true });
+  expect(sensors).not.toHaveProperty('viewport');
+  expect(sensors).not.toHaveProperty('visibility');
   dispatch(env.window, 'deviceorientation', { alpha: 20, beta: 5, gamma: null, absolute: false });
   expect(sensors.orientation.getSnapshot()).toMatchObject({ alpha: 20, gamma: null, absolute: false });
   dispatch(env.window, 'pointerdown', { pointerId: 1, clientX: 12, clientY: 24, pressure: 0.5, pointerType: 'touch' });
   expect(sensors.pointer.getSnapshot()).toMatchObject({ x: 12, y: 24, pointerId: 1, phase: 'down' });
-  expect(sensors.viewport.getSnapshot()).toMatchObject({ width: 390, height: 844, scale: 1 });
-  expect(sensors.visibility.getSnapshot()).toBe('visible');
   await sensors.start({ location: true });
   locate({ timestamp: 42, coords: { latitude: 25, longitude: 121, accuracy: 8, altitude: null, altitudeAccuracy: null, heading: null, speed: null } } as GeolocationPosition);
   expect(sensors.location.getSnapshot()).toMatchObject({ latitude: 25, longitude: 121, speed: null });
@@ -73,7 +73,6 @@ it('requests both permissions synchronously and isolates refusal from other sour
   expect(sensors.motion.getSnapshot()).toBeNull();
   dispatch(env.window, 'deviceorientation', { alpha: 10 });
   expect(sensors.orientation.getSnapshot()?.alpha).toBe(10);
-  expect(sensors.viewport.getSnapshot()?.width).toBe(390);
   sensors.destroy();
 });
 
@@ -138,7 +137,6 @@ it('surfaces insecure-context and location exceptions without disabling safe sou
   await expect(s.start()).resolves.toBeUndefined();
   expect(s.status.getSnapshot().motion).toMatchObject({ state: 'error' });
   expect(s.status.getSnapshot().location).toMatchObject({ state: 'error' });
-  expect(s.viewport.getSnapshot()?.width).toBe(390);
   s.destroy();
   const secure = environment(); secure.navigator.geolocation = env.navigator.geolocation;
   const b = createSensors({ environment: secure, location: true }); await expect(b.start()).resolves.toBeUndefined();
@@ -150,7 +148,89 @@ it('falls back to touch input when Pointer Events are unavailable', async () => 
   const sensors = createSensors({ environment: env });
   expect(sensors.capabilities().pointer).toBe(true); await sensors.start();
   const touch = { identifier: 8, clientX: 40, clientY: 60, force: 0.75 };
-  dispatch(env.window, 'touchstart', { changedTouches: { item: () => touch, 0: touch } });
+  dispatch(env.window, 'touchstart', { changedTouches: { length: 1, item: () => touch, 0: touch } });
   expect(sensors.pointer.getSnapshot()).toMatchObject({ pointerId: 8, pointerType: 'touch', x: 40, y: 60, pressure: 0.75, phase: 'down' });
+  sensors.destroy();
+});
+
+it('detects left and right presses independently and derives both-pressed from their held states', async () => {
+  const env = environment();
+  const sensors = createSensors({ environment: env });
+  const leftPress = vi.fn();
+  const rightPress = vi.fn();
+  sensors.on('left-press', leftPress);
+  sensors.on('right-press', rightPress);
+  await sensors.start();
+
+  dispatch(env.window, 'pointerdown', { pointerId: 1, pointerType: 'touch', clientX: 60, clientY: 240, pressure: 0.5 });
+  expect(sensors.device.getSnapshot().leftPressed).toBe(true);
+  expect(sensors.device.getSnapshot().rightPressed).toBe(false);
+  expect(leftPress).toHaveBeenCalledWith(expect.objectContaining({ type: 'left-press', source: 'pointer', pointerId: 1 }));
+
+  dispatch(env.window, 'pointerdown', { pointerId: 2, pointerType: 'touch', clientX: 340, clientY: 240, pressure: 0.5 });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: true, rightPressed: true });
+  expect(rightPress).toHaveBeenCalledWith(expect.objectContaining({ type: 'right-press', source: 'pointer', pointerId: 2 }));
+
+  dispatch(env.window, 'pointerup', { pointerId: 1, pointerType: 'touch', clientX: 60, clientY: 240, pressure: 0 });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: false, rightPressed: true });
+  dispatch(env.window, 'pointerup', { pointerId: 2, pointerType: 'touch', clientX: 340, clientY: 240, pressure: 0 });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: false, rightPressed: false });
+  sensors.destroy();
+});
+
+it('keeps a press assigned to its touchdown half until its last pointer is released', async () => {
+  const env = environment();
+  const sensors = createSensors({ environment: env });
+  const leftPress = vi.fn();
+  sensors.on('left-press', leftPress);
+  await sensors.start();
+
+  dispatch(env.window, 'pointerdown', { pointerId: 1, pointerType: 'touch', clientX: 80, clientY: 200 });
+  dispatch(env.window, 'pointerdown', { pointerId: 2, pointerType: 'touch', clientX: 90, clientY: 220 });
+  dispatch(env.window, 'pointermove', { pointerId: 1, pointerType: 'touch', clientX: 370, clientY: 200 });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: true, rightPressed: false });
+  expect(leftPress).toHaveBeenCalledTimes(1);
+
+  dispatch(env.window, 'pointerup', { pointerId: 1, pointerType: 'touch', clientX: 370, clientY: 200 });
+  expect(sensors.device.getSnapshot().leftPressed).toBe(true);
+  dispatch(env.window, 'pointercancel', { pointerId: 2, pointerType: 'touch', clientX: 90, clientY: 220 });
+  expect(sensors.device.getSnapshot().leftPressed).toBe(false);
+  sensors.destroy();
+});
+
+it('tracks every changed touch in the multi-touch fallback and clears held sides on stop', async () => {
+  const env = environment(); delete env.window.PointerEvent; env.window.ontouchstart = null;
+  const sensors = createSensors({ environment: env });
+  await sensors.start();
+  const left = { identifier: 1, clientX: 40, clientY: 200, force: 0.5 };
+  const right = { identifier: 2, clientX: 350, clientY: 200, force: 0.5 };
+  const touchPoints = [left, right];
+  const changedTouches = { length: touchPoints.length, item: (index: number) => touchPoints[index] ?? null };
+  dispatch(env.window, 'touchstart', { changedTouches });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: true, rightPressed: true });
+  sensors.stop();
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: false, rightPressed: false });
+  sensors.destroy();
+});
+
+it('ignores a 100 CSS-pixel dead zone centered on the screen', async () => {
+  const env = environment();
+  const sensors = createSensors({ environment: env });
+  const leftPress = vi.fn();
+  const rightPress = vi.fn();
+  sensors.on('left-press', leftPress);
+  sensors.on('right-press', rightPress);
+  await sensors.start();
+
+  dispatch(env.window, 'pointerdown', { pointerId: 1, pointerType: 'touch', clientX: 195, clientY: 200 });
+  dispatch(env.window, 'pointermove', { pointerId: 1, pointerType: 'touch', clientX: 80, clientY: 200 });
+  expect(leftPress).not.toHaveBeenCalled();
+  expect(rightPress).not.toHaveBeenCalled();
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: false, rightPressed: false });
+
+  dispatch(env.window, 'pointerup', { pointerId: 1, pointerType: 'touch', clientX: 80, clientY: 200 });
+  dispatch(env.window, 'pointerdown', { pointerId: 2, pointerType: 'touch', clientX: 144, clientY: 200 });
+  dispatch(env.window, 'pointerdown', { pointerId: 3, pointerType: 'touch', clientX: 246, clientY: 200 });
+  expect(sensors.device.getSnapshot()).toMatchObject({ leftPressed: true, rightPressed: true });
   sensors.destroy();
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createSensors } from '@mobile-sensor/core';
-  import type { DeviceState, DetectorName, SensorName } from '@mobile-sensor/core';
+  import type { DeviceState, DetectorName, MotionDirection, SensorName, TiltDirection } from '@mobile-sensor/core';
   import { createSensorStores } from '@mobile-sensor/svelte';
   import SensorGalleryFlow from './SensorGalleryFlow.svelte';
 
@@ -17,8 +17,6 @@
   let orientationStore = $state.raw(initialStores.orientation);
   let locationStore = $state.raw(initialStores.location);
   let pointerStore = $state.raw(initialStores.pointer);
-  let viewportStore = $state.raw(initialStores.viewport);
-  let visibilityStore = $state.raw(initialStores.visibility);
   let deviceStore = $state.raw(initialStores.device);
   let statusStore = $state.raw(initialStores.status);
   let detectorState = $state<DeviceState>(initialSensors.device.getSnapshot());
@@ -26,18 +24,23 @@
   let running = $state(false);
   let paused = $state(false);
   let locationEnabled = $state(false);
-  let events = $state<Array<{ id: number; time: string; name: string; source: string; intensity: number; timestamp: number }>>([]);
+  let events = $state<Array<{ id: number; time: string; name: string; source: string; intensity: number | null; timestamp: number }>>([]);
   let simTimer: ReturnType<typeof setInterval> | undefined;
   let simSample = 0;
   let simEnvironment: ReturnType<typeof makeSimulation> | undefined;
   let unsubscribers: Array<() => void> = [];
-  const eventLabels: Record<DetectorName, string> = { shake: 'Shake', movement: 'Movement', stationary: 'Stationary', tilt: 'Tilt', rotation: 'Rotation' };
+  const eventLabels: Record<DetectorName, string> = { direction: 'Direction', shake: 'Shake', movement: 'Movement', stationary: 'Stationary', tilt: 'Tilt', 'tilt-direction': 'Tilt direction', rotation: 'Rotation', 'left-press': 'Left press', 'right-press': 'Right press' };
+  const directionLabels: Record<MotionDirection, string> = { up: 'UP ↑', down: 'DOWN ↓', left: 'LEFT ←', right: 'RIGHT →', 'rotate-left': 'ROTATE LEFT ↶', 'rotate-right': 'ROTATE RIGHT ↷' };
+  const tiltLabels: Record<TiltDirection, string> = { forward: 'TILT FORWARD ↘', backward: 'TILT BACKWARD ↖', left: 'TILT LEFT ←', right: 'TILT RIGHT →' };
 
   function bindEvents() {
     unsubscribers.forEach(off => off());
     unsubscribers = (Object.keys(eventLabels) as DetectorName[]).map(name => sensors.on(name, event => {
-      events = [{ id: Date.now() + Math.random(), time: new Date(event.timestamp).toLocaleTimeString('en-US'), name: eventLabels[name], source: event.source, intensity: event.intensity, timestamp: event.timestamp }, ...events].slice(0, 200);
-      if (name === 'shake' || name === 'movement') vibrate([35, 30, 45]);
+      let label = eventLabels[name];
+      if (name === 'direction' && 'direction' in event && event.direction) label = directionLabels[event.direction];
+      if (name === 'tilt-direction' && 'tiltDirection' in event && event.tiltDirection) label = tiltLabels[event.tiltDirection];
+      events = [{ id: Date.now() + Math.random(), time: new Date(event.timestamp).toLocaleTimeString('en-US'), name: label, source: event.source, intensity: event.intensity ?? null, timestamp: event.timestamp }, ...events].slice(0, 200);
+      if (name === 'shake' || name === 'movement' || name === 'direction' || name === 'left-press' || name === 'right-press') vibrate(name === 'left-press' || name === 'right-press' ? 25 : [35, 30, 45]);
     }));
   }
   function modeEnvironment() {
@@ -53,8 +56,6 @@
     orientationStore = next.orientation;
     locationStore = next.location;
     pointerStore = next.pointer;
-    viewportStore = next.viewport;
-    visibilityStore = next.visibility;
     deviceStore = next.device;
     statusStore = next.status;
   }
@@ -81,8 +82,6 @@
       DeviceOrientationEvent: {},
       PointerEvent: {},
       innerWidth: 390,
-      innerHeight: 844,
-      visualViewport: Object.assign(new EventTarget(), { width: 390, height: 844, scale: 1, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0 }),
     });
     const doc = Object.assign(new EventTarget(), { visibilityState: 'visible' });
     let nextWatch = 0;
@@ -103,12 +102,29 @@
   function fire(type: string, data: object) { simEnvironment?.win.dispatchEvent(Object.assign(new Event(type), data)); }
   function simulate() {
     simSample++;
-    const shake = simSample % 12 === 5 || simSample % 12 === 6;
+    const cycleSample = (simSample - 1) % 48;
+    if (cycleSample === 0) fire('pointerdown', { pointerId: 101, pointerType: 'touch', clientX: 90, clientY: 230, pressure: 0.6 });
+    if (cycleSample === 1) fire('pointerdown', { pointerId: 102, pointerType: 'touch', clientX: 300, clientY: 230, pressure: 0.6 });
+    if (cycleSample === 24) fire('pointerup', { pointerId: 101, pointerType: 'touch', clientX: 90, clientY: 230, pressure: 0 });
+    if (cycleSample === 25) fire('pointerup', { pointerId: 102, pointerType: 'touch', clientX: 300, clientY: 230, pressure: 0 });
+    const slot = Math.floor(cycleSample / 6);
+    const slotSample = cycleSample % 6;
+    const directions: MotionDirection[] = ['right', 'left', 'up', 'down', 'rotate-right', 'rotate-left'];
+    const action = slot < directions.length && slotSample === 2 ? directions[slot]! : null;
+    const shake = slot === 6 && (slotSample === 2 || slotSample === 3);
     const wave = Math.sin(simSample / 3);
-    fire('devicemotion', { acceleration: { x: shake ? (simSample % 2 ? 18 : -18) : wave * 0.35, y: Math.cos(simSample / 4) * 0.2, z: 0.1 }, accelerationIncludingGravity: { x: wave * 2, y: 3, z: 9.5 }, rotationRate: { alpha: simSample % 9 === 2 ? 45 : 2, beta: 3, gamma: 1 }, interval: 16 });
-    fire('deviceorientation', { alpha: (simSample * 3) % 360, beta: 8 + Math.sin(simSample / 5) * 4, gamma: simSample % 15 > 9 ? 32 : 4, absolute: false });
+    const shakeAcceleration = slotSample === 2 ? 18 : -18;
+    const x = shake ? shakeAcceleration : action === 'right' ? 5 : action === 'left' ? -5 : wave * 0.35;
+    const y = shake ? 0 : action === 'up' ? 5 : action === 'down' ? -5 : Math.cos(simSample / 4) * 0.2;
+    const alpha = action === 'rotate-right' ? 45 : action === 'rotate-left' ? -45 : 2;
+    fire('devicemotion', { acceleration: { x, y, z: 0.1 }, accelerationIncludingGravity: { x: wave * 2, y: 3, z: 9.5 }, rotationRate: { alpha, beta: 3, gamma: 1 }, interval: 16 });
+    const tiltCycle = (simSample - 1) % 32;
+    const tiltSlot = Math.floor(tiltCycle / 8);
+    const tilted = tiltCycle % 8 >= 4;
+    const beta = 90 + (tilted && tiltSlot === 0 ? 25 : tilted && tiltSlot === 1 ? -25 : 0);
+    const gamma = (tilted && tiltSlot === 2 ? 25 : tilted && tiltSlot === 3 ? -25 : 0);
+    fire('deviceorientation', { alpha: (simSample * 3) % 360, beta, gamma, absolute: false });
     if (simSample % 3 === 0) fire('pointermove', { pointerId: 1, pointerType: 'touch', clientX: 120 + simSample % 90, clientY: 230, pressure: 0.6 });
-    fire('resize', {});
   }
   async function testSensor(name: SensorName) {
     try {
@@ -156,7 +172,7 @@
   <div class="app-status"><span class="run-indicator" class:live={running && !paused}></span><strong>{paused ? 'PAUSED' : running ? (simulated ? 'DEMO RUNNING' : 'SENSORS RUNNING') : simulated ? 'DEMO READY' : 'READY TO TEST'}</strong>
     <div class="app-actions">{#if paused}<button onclick={resume}>Resume</button>{:else if running}<button onclick={pause}>Pause</button>{/if}{#if running || paused}<button onclick={stop}>Stop</button>{/if}</div>
   </div>
-  <SensorGalleryFlow {screen} {selectedSensor} values={{ motion: $motionStore, orientation: $orientationStore, location: $locationStore, pointer: $pointerStore, viewport: $viewportStore, visibility: $visibilityStore }} statuses={$statusStore} {detectorState} {events} {simulated} {hapticsEnabled} {hapticsSupported} onSelect={selectSensor} onBack={returnToCatalog} onTest={testSensor} onHapticChange={toggleHaptics} onClearEvents={clearEvents} />
+  <SensorGalleryFlow {screen} {selectedSensor} values={{ motion: $motionStore, orientation: $orientationStore, location: $locationStore, pointer: $pointerStore }} statuses={$statusStore} {detectorState} {events} {simulated} {hapticsEnabled} {hapticsSupported} onSelect={selectSensor} onBack={returnToCatalog} onTest={testSensor} onHapticChange={toggleHaptics} onClearEvents={clearEvents} />
   <footer class="app-footer"><span>LOCAL SENSOR PLAYGROUND</span><span>Device data stays on this device</span></footer>
 </main></div>
 

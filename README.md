@@ -47,18 +47,43 @@ const stopShakeListener = sensors.on('shake', event => {
   console.log(event.type, event.intensity);
 });
 
+const stopDirectionListener = sensors.on('direction', event => {
+  console.log(event.direction); // up, down, left, right, rotate-left, rotate-right
+});
+
+const stopTiltListener = sensors.on('tilt-direction', event => {
+  console.log(event.tiltDirection); // forward, backward, left, right
+});
+
+const stopLeftPress = sensors.on('left-press', event => {
+  console.log('Left screen pressed by pointer', event.pointerId);
+});
+const stopRightPress = sensors.on('right-press', event => {
+  console.log('Right screen pressed by pointer', event.pointerId);
+});
+const stopTouchState = sensors.device.subscribe(state => {
+  if (state.leftPressed && state.rightPressed) console.log('Both sides are held');
+});
+
 // Location must be explicitly enabled.
 await sensors.start({ location: true });
 
 // Unsubscribe and release this instance's sensor resources when the page is done.
 stopMotionListener();
 stopShakeListener();
+stopDirectionListener();
+stopTiltListener();
+stopLeftPress();
+stopRightPress();
+stopTouchState();
 sensors.destroy();
 ```
 
-Each channel exposes a stable `getSnapshot()` and `subscribe(handler, { throttle })`; subscribing returns an unsubscribe function. Missing values are `null`. The six channels are `motion`, `orientation`, `location`, `pointer`, `viewport`, and `visibility`. The library also provides `device` (combined device state), `status`, `permissions`, `capabilities()`, `on()`, and `start/pause/resume/stop/destroy`.
+Each channel exposes a stable `getSnapshot()` and `subscribe(handler, { throttle })`; subscribing returns an unsubscribe function. Missing values are `null`. The four channels are `motion`, `orientation`, `location`, and `pointer`. The library also provides `device` (combined device state), `status`, `permissions`, `capabilities()`, `on()`, and `start/pause/resume/stop/destroy`. The browser's page visibility lifecycle is handled internally to pause and resume active sensors; page visibility is not a public sensor channel.
 
-Detected event names are `shake`, `movement`, `stationary`, `tilt`, and `rotation`. Detection uses local heuristic thresholds that can be configured with `createSensors({ detectors: { ... } })`. These events are estimates for interaction and are not activity-recognition results guaranteed to be accurate across devices.
+Motion keeps its original X/Y/Z acceleration values and also emits `direction` events for up, down, left, right, rotate-left, and rotate-right. `shake` is a separate event. Orientation reports `tilt-direction` as forward, backward, left, or right, relative to the pose when testing starts. Other event names include `movement`, `stationary`, `tilt`, and `rotation`. Detection uses local heuristic thresholds configurable through `createSensors({ detectors: { ... } })`; these estimates can vary across devices and are not activity-recognition results.
+
+Touch emits `left-press` and `right-press` when a pointer first presses each side of the viewport. A centered 100 CSS-pixel band is inactive. A pointer stays assigned to the side where it started until it is released; `device.leftPressed` and `device.rightPressed` report held state, so an application can derive a two-side hold without a separate combined event. Multiple pointers on one side keep that side pressed until the last pointer lifts. Touch events do not report physical pressing force.
 
 ## Framework Adapters
 

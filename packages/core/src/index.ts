@@ -1,24 +1,23 @@
 import { detectors } from './detectors';
 import { channel } from './channel';
-import type { MotionData, SensorEnvironment, SensorOptions, SensorName, SensorState, Status, Capabilities, OrientationData, LocationData, PointerData, ViewportData, Permissions, DetectorName, DetectorEvent, DeviceState } from './types';
+import type { MotionData, SensorEnvironment, SensorOptions, SensorName, SensorState, Status, Capabilities, OrientationData, LocationData, PointerData, Permissions, DetectorName, DetectorEvent, DeviceState } from './types';
 export type * from './types';
-const names: SensorName[] = ['motion', 'orientation', 'location', 'pointer', 'viewport', 'visibility'];
+const names: SensorName[] = ['motion', 'orientation', 'location', 'pointer'];
 export function createSensors(options: SensorOptions = {}) {
   const env = options.environment === undefined ? browserEnvironment() : options.environment;
-  const capabilities: Capabilities = { motion: !!env?.window.DeviceMotionEvent, orientation: !!env?.window.DeviceOrientationEvent, location: !!env?.navigator.geolocation, pointer: !!(env?.window.PointerEvent || (env && 'ontouchstart' in env.window)), viewport: !!env, visibility: !!env };
+  const capabilities: Capabilities = { motion: !!env?.window.DeviceMotionEvent, orientation: !!env?.window.DeviceOrientationEvent, location: !!env?.navigator.geolocation, pointer: !!(env?.window.PointerEvent || (env && 'ontouchstart' in env.window)) };
   const motion = channel<MotionData | null>(null);
   const orientation = channel<OrientationData | null>(null);
   const location = channel<LocationData | null>(null);
   const pointer = channel<PointerData | null>(null);
-  const viewport = channel<ViewportData | null>(null);
-  const visibility = channel<'visible' | 'hidden' | null>(null);
   const eventHandlers = new Map<DetectorName, Set<(event: DetectorEvent) => void>>();
-  const device = channel<DeviceState>({ tilting: null, rotating: null, moving: null, stationary: null, shaking: null, movementIntensity: null });
+  const device = channel<DeviceState>({ tilting: null, tiltDirection: null, rotating: null, moving: null, stationary: null, shaking: null, movementIntensity: null, direction: null, leftPressed: false, rightPressed: false });
   const detector = detectors(options.detectors ?? {}, event => { for (const handler of [...(eventHandlers.get(event.type) ?? [])]) handler(event); }, patch => device.publish({ ...device.api.getSnapshot(), ...patch }));
+  const activePointers = new Map<number, 'left' | 'right'>();
   const constructors = { motion: env?.window.DeviceMotionEvent, orientation: env?.window.DeviceOrientationEvent };
   const permissions = channel<Permissions>({ motion: !capabilities.motion ? 'unsupported' : constructors.motion?.requestPermission ? 'unknown' : 'not-required', orientation: !capabilities.orientation ? 'unsupported' : constructors.orientation?.requestPermission ? 'unknown' : 'not-required', location: capabilities.location ? 'unknown' : 'unsupported' });
   const status = channel<Status>(Object.fromEntries(names.map(name => [name, { state: !capabilities[name] ? 'unsupported' : (name === 'motion' || name === 'orientation') && permissions.api.getSnapshot()[name] === 'unknown' ? 'permission-required' : 'idle', error: null, updatedAt: null }])) as Status);
-  const channels = [motion, orientation, location, pointer, viewport, visibility, device, status, permissions];
+  const channels = [motion, orientation, location, pointer, device, status, permissions];
   const cleanups: Array<() => void> = [];
   let running = false;
   let wanted = false;
@@ -36,6 +35,43 @@ export function createSensors(options: SensorOptions = {}) {
   }
   function listen(target: EventTarget, type: string, fn: (e: Event) => void) {
     target.addEventListener(type, fn); cleanups.push(() => target.removeEventListener(type, fn));
+  }
+  function publishPress(side: 'left' | 'right', pressed: boolean, pointerId: number, timestamp: number) {
+    const current = device.api.getSnapshot();
+    const key = side === 'left' ? 'leftPressed' : 'rightPressed';
+    if (current[key] === pressed) return;
+    device.publish({ ...current, [key]: pressed });
+    if (pressed) {
+      const event: DetectorEvent = { type: side === 'left' ? 'left-press' : 'right-press', source: 'pointer', timestamp, pointerId };
+      for (const handler of [...(eventHandlers.get(event.type) ?? [])]) handler(event);
+    }
+  }
+  function releasePointer(pointerId: number, timestamp: number) {
+    const side = activePointers.get(pointerId);
+    if (!side) return;
+    activePointers.delete(pointerId);
+    publishPress(side, [...activePointers.values()].includes(side), pointerId, timestamp);
+  }
+  function releaseAllPointers() {
+    activePointers.clear();
+    const current = device.api.getSnapshot();
+    if (current.leftPressed || current.rightPressed) device.publish({ ...current, leftPressed: false, rightPressed: false });
+  }
+  function publishPointer(input: { pointerId: number; pointerType: string; clientX: number | null; clientY: number | null; pressure: number | null }, phase: PointerData['phase']) {
+    const timestamp = Date.now();
+    pointer.publish({ timestamp, pointerId: input.pointerId, pointerType: input.pointerType, x: input.clientX, y: input.clientY, pressure: input.pressure, phase });
+    if (phase === 'down') {
+      releasePointer(input.pointerId, timestamp);
+      if (input.clientX !== null && env) {
+        const middle = env.window.innerWidth / 2;
+        if (input.clientX < middle - 50) {
+          activePointers.set(input.pointerId, 'left'); publishPress('left', true, input.pointerId, timestamp);
+        } else if (input.clientX > middle + 50) {
+          activePointers.set(input.pointerId, 'right'); publishPress('right', true, input.pointerId, timestamp);
+        }
+      }
+    } else if (phase === 'up' || phase === 'cancel') releasePointer(input.pointerId, timestamp);
+    setStatus('pointer', 'active');
   }
   function requestPermission(request: { motion?: boolean; orientation?: boolean } = { motion: true, orientation: true }) {
     const requestGeneration = permissionGeneration;
@@ -107,40 +143,28 @@ export function createSensors(options: SensorOptions = {}) {
     if (capabilities.pointer && env.window.PointerEvent) for (const phase of ['down', 'move', 'up', 'cancel'] as const) {
       listen(env.window, `pointer${phase}`, event => {
         const data = event as PointerEvent;
-        pointer.publish({ timestamp: Date.now(), pointerId: data.pointerId, pointerType: data.pointerType, x: numeric(data.clientX), y: numeric(data.clientY), pressure: numeric(data.pressure), phase });
-        setStatus('pointer', 'active');
+        publishPointer({ pointerId: data.pointerId, pointerType: data.pointerType, clientX: numeric(data.clientX), clientY: numeric(data.clientY), pressure: numeric(data.pressure) }, phase);
       });
       setStatus('pointer', 'waiting');
     } else if (capabilities.pointer) for (const [nativeEvent, phase] of [['touchstart', 'down'], ['touchmove', 'move'], ['touchend', 'up'], ['touchcancel', 'cancel']] as const) {
       listen(env.window, nativeEvent, event => {
-        const touch = (event as TouchEvent).changedTouches?.[0];
-        if (!touch) return;
-        pointer.publish({ timestamp: Date.now(), pointerId: touch.identifier, pointerType: 'touch', x: numeric(touch.clientX), y: numeric(touch.clientY), pressure: numeric(touch.force), phase });
-        setStatus('pointer', 'active');
+        const changed = (event as TouchEvent).changedTouches;
+        if (!changed) return;
+        for (let index = 0; index < changed.length; index++) {
+          const touch = changed.item(index);
+          if (!touch) continue;
+          publishPointer({ pointerId: touch.identifier, pointerType: 'touch', clientX: numeric(touch.clientX), clientY: numeric(touch.clientY), pressure: numeric(touch.force) }, phase);
+        }
       });
       setStatus('pointer', 'waiting');
     }
-    const onViewport = () => {
-      const v = env.window.visualViewport;
-      viewport.publish({ timestamp: Date.now(), width: v?.width ?? env.window.innerWidth, height: v?.height ?? env.window.innerHeight, scale: v?.scale ?? 1, offsetLeft: v?.offsetLeft ?? 0, offsetTop: v?.offsetTop ?? 0, pageLeft: v?.pageLeft ?? 0, pageTop: v?.pageTop ?? 0 });
-      setStatus('viewport', 'active');
-    };
-    listen(env.window, 'resize', onViewport);
-    if (env.window.visualViewport) { listen(env.window.visualViewport, 'resize', onViewport); listen(env.window.visualViewport, 'scroll', onViewport); }
-    onViewport();
-    updateVisibility();
     startLocation();
-  }
-  function updateVisibility() {
-    visibility.publish(env?.document.visibilityState === 'hidden' || pageHidden ? 'hidden' : 'visible');
-    setStatus('visibility', 'active');
   }
   function ensureLifecycle() {
     if (!env || lifecycleAttached) return;
     lifecycleAttached = true;
     const change = () => {
       if (!wanted) return;
-      updateVisibility();
       if (env.document.visibilityState === 'hidden' || pageHidden) detach('paused');
       else if (!manuallyPaused) attach();
     };
@@ -152,7 +176,7 @@ export function createSensors(options: SensorOptions = {}) {
     }
   }
   function detach(state: 'paused' | 'stopped') {
-    running = false; generation++; detector.reset();
+    running = false; generation++; detector.reset(); releaseAllPointers();
     for (const cleanup of cleanups.splice(0)) cleanup();
     if (watchId !== undefined) env?.navigator.geolocation?.clearWatch(watchId);
     watchId = undefined;
@@ -166,7 +190,7 @@ export function createSensors(options: SensorOptions = {}) {
     lifecycleAttached = false;
   }
   return {
-    motion: motion.api, orientation: orientation.api, location: location.api, pointer: pointer.api, viewport: viewport.api, visibility: visibility.api, device: device.api, status: status.api, permissions: permissions.api, requestPermission,
+    motion: motion.api, orientation: orientation.api, location: location.api, pointer: pointer.api, device: device.api, status: status.api, permissions: permissions.api, requestPermission,
     on(name: DetectorName, handler: (event: DetectorEvent) => void) {
       if (destroyed) return () => {};
       let handlers = eventHandlers.get(name); if (!handlers) { handlers = new Set(); eventHandlers.set(name, handlers); }

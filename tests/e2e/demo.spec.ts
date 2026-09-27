@@ -8,16 +8,18 @@ test('B catalog separates sensor selection from visual guided tests', async ({ p
   await expect(page.getByTestId('variant-switcher')).toHaveCount(0);
   const catalog = page.getByRole('navigation', { name: 'Sensor features' });
   await expect(catalog).toHaveClass(/catalog-b/);
-  await expect(catalog.locator('button')).toHaveCount(6);
+  await expect(catalog.locator('button')).toHaveCount(4);
+  await expect(catalog.locator('.card-icon').first()).toHaveCSS('font-size', '42px');
 
   const sensors: Array<[string, string]> = [
     ['Motion', 'motion'],
     ['Orientation', 'orientation'],
     ['Location', 'location'],
     ['Touch', 'pointer'],
-    ['Viewport', 'viewport'],
-    ['Visibility', 'visibility'],
   ];
+
+  await expect(catalog.getByRole('button', { name: /Viewport/ })).toHaveCount(0);
+  await expect(catalog.getByRole('button', { name: /Visibility/ })).toHaveCount(0);
 
   for (const [name, visual] of sensors) {
     await page.getByRole('button', { name: new RegExp(name) }).click();
@@ -48,7 +50,46 @@ test('demo motion produces a visual response, success light, haptic option, and 
   await expect(page.getByText('CHECK PASSED')).toBeVisible({ timeout: 4000 });
   await expect(page.locator('.status-light.green')).toBeVisible();
   await expect(page.locator('[data-visual="motion"] .motion-trail')).toBeVisible();
-  await expect(page.getByText('Shake', { exact: true }).last()).toBeVisible({ timeout: 8000 });
+  await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'right', { timeout: 4000 });
+  await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'rotate-right', { timeout: 6000 });
+  await expect(page.locator('.event-row strong')).toHaveText('Shake', { timeout: 8000 });
+  await expect(page.getByTestId('motion-direction')).toHaveAttribute('data-direction', 'shake');
+});
+
+test('demo orientation tells forward and backward tilt apart', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Demo', exact: true }).click();
+  await page.getByRole('button', { name: /Orientation/ }).click();
+  await page.getByRole('button', { name: 'Start test' }).click();
+  await expect(page.getByTestId('orientation-tilt-direction')).toHaveAttribute('data-tilt-direction', 'forward', { timeout: 4000 });
+  await expect(page.getByTestId('orientation-tilt-direction')).toHaveAttribute('data-tilt-direction', 'backward', { timeout: 4000 });
+});
+
+test('demo Touch shows independent left and right presses held together', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Demo', exact: true }).click();
+  await page.getByRole('button', { name: /Touch/ }).click();
+  await page.getByRole('button', { name: 'Start test' }).click();
+
+  await expect(page.getByTestId('touch-left-zone')).toHaveAttribute('data-pressed', 'true', { timeout: 4000 });
+  await expect(page.getByTestId('touch-right-zone')).toHaveAttribute('data-pressed', 'true', { timeout: 4000 });
+  await expect(page.getByTestId('touch-state')).toHaveText('BOTH SIDES PRESSED');
+  await expect(page.getByText('TOUCH DETECTORS', { exact: true })).toBeVisible();
+});
+
+test('Touch center dead zone does not report a successful press', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Touch/ }).click();
+  await page.getByRole('button', { name: 'Start test' }).click();
+  await page.mouse.click(195, 400);
+
+  await expect(page.getByTestId('touch-left-zone')).toHaveAttribute('data-pressed', 'false');
+  await expect(page.getByTestId('touch-right-zone')).toHaveAttribute('data-pressed', 'false');
+  await expect(page.locator('.status-light.green')).toHaveCount(0);
+  await expect(page.getByText('WAITING FOR DATA', { exact: true })).toBeVisible();
 });
 
 test('sensor catalog and detail view fit a phone screen without vertical page scrolling', async ({ page }) => {
