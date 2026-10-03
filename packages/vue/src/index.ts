@@ -1,6 +1,6 @@
 import { shallowRef, shallowReadonly, onScopeDispose, onMounted } from 'vue';
 import type { ShallowRef } from 'vue';
-import type { Channel, Sensors } from '@mobile-sensor/core';
+import type { Channel, Sensors, MobileSensor, MobileSensorOutput } from '@mobile-sensor/core';
 export interface SamplingOptions { fps?: number }
 export function useSensor<T>(source: Channel<T>, options: SamplingOptions = {}): Readonly<ShallowRef<T>> {
   const fps = options.fps ?? 10;
@@ -18,3 +18,17 @@ export const useMotion = (sensors: Sensors, options?: SamplingOptions) => useSen
 export const useOrientation = (sensors: Sensors, options?: SamplingOptions) => useSensor(sensors.orientation, options);
 export const useLocation = (sensors: Sensors, options?: SamplingOptions) => useSensor(sensors.location, options);
 export const useDeviceState = (sensors: Sensors, options?: SamplingOptions) => useSensor(sensors.device, options);
+
+export { createMobileSensor } from '@mobile-sensor/core';
+export type { MobileSensor, MobileSensorOptions, MobileSensorStartOptions, MobileSensorOutput, MobileSensorEvent } from '@mobile-sensor/core';
+
+/** Latest output ref plus an optional callback invoked for every unified output. */
+export function useMobileSensor(source: MobileSensor, onData?: (output: MobileSensorOutput) => void): Readonly<ShallowRef<MobileSensorOutput | null>> {
+  const output = shallowRef<MobileSensorOutput | null>(null);
+  let unsubscribe: (() => void) | undefined;
+  onMounted(() => {
+    unsubscribe = source.onData(value => { output.value = value; onData?.(value); });
+  });
+  onScopeDispose(() => unsubscribe?.());
+  return shallowReadonly(output);
+}

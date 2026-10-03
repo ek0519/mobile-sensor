@@ -1,6 +1,7 @@
 import type { MotionData, DetectorEvent, DetectorOptions, Vector3, DeviceState, OrientationData, MotionDirection, TiltDirection, ScreenFace } from './types';
 export const detectorDefaults: DetectorOptions = { shakeThreshold: 12, shakeWindow: 500, shakeCooldown: 1000, movementThreshold: 1.5, stationaryThreshold: 0.8, movementDuration: 150, stationaryDuration: 800, staleAfter: 1000, tiltThreshold: 20, tiltRelease: 15, rotationThreshold: 30, rotationRelease: 20, directionThreshold: 2.5, circleAccelerationThreshold: 0.8, circleSweepThreshold: 300, circleMinSamples: 10, circleWindow: 2500, directionCooldown: 400 };
-export function detectors(options: Partial<DetectorOptions>, emit: (event: DetectorEvent) => void, update: (patch: Partial<DeviceState>) => void) {
+export function detectors(options: Partial<DetectorOptions>, emit: (event: DetectorEvent) => void, update: (patch: Partial<DeviceState>) => void, runtime: { timers?: boolean } = {}) {
+  const schedule: typeof setTimeout = runtime.timers === false ? (() => undefined) as unknown as typeof setTimeout : setTimeout;
   const config = { ...detectorDefaults, ...options };
   const nonNegative = ['shakeThreshold', 'shakeWindow', 'shakeCooldown', 'movementThreshold', 'stationaryThreshold', 'movementDuration', 'stationaryDuration', 'staleAfter', 'tiltThreshold', 'tiltRelease', 'rotationThreshold', 'rotationRelease', 'directionThreshold', 'circleAccelerationThreshold', 'circleSweepThreshold', 'circleMinSamples', 'circleWindow', 'directionCooldown'] as const;
   if (nonNegative.some(key => !Number.isFinite(config[key]) || config[key] < 0) || config.staleAfter === 0 || config.directionThreshold === 0 || config.circleAccelerationThreshold === 0 || config.circleWindow === 0 || config.circleSweepThreshold <= 180 || config.circleSweepThreshold > 360 || !Number.isInteger(config.circleMinSamples) || config.circleMinSamples < 8 || config.movementThreshold <= config.stationaryThreshold || config.tiltRelease > config.tiltThreshold || config.rotationRelease > config.rotationThreshold) {
@@ -35,7 +36,7 @@ export function detectors(options: Partial<DetectorOptions>, emit: (event: Detec
     lastDirectionAt = timestamp;
     clearTimeout(directionTimer);
     update({ direction });
-    directionTimer = setTimeout(() => update({ direction: null }), config.staleAfter);
+    directionTimer = schedule(() => update({ direction: null }), config.staleAfter);
     emit({ type: 'direction', source: 'motion', timestamp, intensity, direction });
   };
   const detectCircle = (x: number | null, y: number | null, timestamp: number) => {
@@ -81,7 +82,7 @@ export function detectors(options: Partial<DetectorOptions>, emit: (event: Detec
       const betaDelta = angleDelta(data.beta, tiltBaseline.beta);
       const gammaDelta = data.gamma - tiltBaseline.gamma;
       const intensity = Math.max(Math.abs(betaDelta), Math.abs(gammaDelta));
-      clearTimeout(tiltTimer); tiltTimer = setTimeout(() => { resetFace(); tilting = null; tiltDirection = null; tiltBaseline = null; update({ tilting: null, tiltDirection: null }); }, config.staleAfter);
+      clearTimeout(tiltTimer); tiltTimer = schedule(() => { resetFace(); tilting = null; tiltDirection = null; tiltBaseline = null; update({ tilting: null, tiltDirection: null }); }, config.staleAfter);
       const next = intensity >= config.tiltThreshold ? true : intensity <= config.tiltRelease ? false : tilting;
       if (next !== tilting) { tilting = next; update({ tilting }); if (tilting) emit({ type: 'tilt', source: 'orientation', timestamp: data.timestamp, intensity }); }
       if (intensity >= config.tiltThreshold) {
@@ -94,7 +95,7 @@ export function detectors(options: Partial<DetectorOptions>, emit: (event: Detec
       const r = data.rotationRate;
       if (r.alpha !== null && r.beta !== null && r.gamma !== null) {
         const intensity = Math.hypot(r.alpha, r.beta, r.gamma);
-        clearTimeout(rotationTimer); rotationTimer = setTimeout(() => { rotating = null; update({ rotating: null }); }, config.staleAfter);
+        clearTimeout(rotationTimer); rotationTimer = schedule(() => { rotating = null; update({ rotating: null }); }, config.staleAfter);
         const next = intensity >= config.rotationThreshold ? true : intensity <= config.rotationRelease ? false : rotating;
         if (next !== rotating) { rotating = next; update({ rotating }); if (rotating) emit({ type: 'rotation', source: 'motion', timestamp: data.timestamp, intensity }); }
       }
@@ -111,7 +112,7 @@ export function detectors(options: Partial<DetectorOptions>, emit: (event: Detec
       }
       const v = complete(data.acceleration); if (!v) return;
       const intensity = Math.hypot(...v);
-      clearTimeout(stale); stale = setTimeout(resetMotion, config.staleAfter);
+      clearTimeout(stale); stale = schedule(resetMotion, config.staleAfter);
       update({ movementIntensity: intensity });
       if (shaking === null) { shaking = false; update({ shaking }); }
       const next = intensity >= config.movementThreshold ? 'movement' : intensity <= config.stationaryThreshold ? 'stationary' : null;
@@ -122,7 +123,7 @@ export function detectors(options: Partial<DetectorOptions>, emit: (event: Detec
       }
       if (intensity >= config.shakeThreshold) {
         if (peak && now - peak.time <= config.shakeWindow && v.reduce((sum, value, i) => sum + value * peak!.vector[i]!, 0) < 0 && now - lastShake >= config.shakeCooldown) {
-          lastShake = now; shaking = true; update({ shaking }); clearTimeout(shakeTimer); shakeTimer = setTimeout(() => { shaking = false; update({ shaking }); }, Math.max(100, config.shakeCooldown)); emit({ type: 'shake', source: 'motion', timestamp: now, intensity }); peak = null;
+          lastShake = now; shaking = true; update({ shaking }); clearTimeout(shakeTimer); shakeTimer = schedule(() => { shaking = false; update({ shaking }); }, Math.max(100, config.shakeCooldown)); emit({ type: 'shake', source: 'motion', timestamp: now, intensity }); peak = null;
         } else peak = { vector: v, time: now };
       }
     },
