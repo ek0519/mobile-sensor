@@ -18,7 +18,7 @@ const auth = await $`npm whoami --registry ${registry}`.quiet().nothrow();
 if (auth.exitCode !== 0) throw new Error('npm authentication is unavailable. Run npm login --auth-type=web, then retry.');
 for (const pkg of packages) {
   const spec = `${pkg.name}@${pkg.version}`;
-  const existing = await $`npm view ${spec} version --json --registry ${registry}`.quiet().nothrow();
+  const existing = await $`npm view ${spec} version --json --prefer-online --registry ${registry}`.quiet().nothrow();
   if (existing.exitCode === 0) {
     if (JSON.parse(existing.stdout.toString()) !== pkg.version) throw new Error(`Unexpected registry version for ${spec}`);
     console.info(`Already published: ${spec}`);
@@ -26,6 +26,10 @@ for (const pkg of packages) {
   }
   if (!/E404/.test(existing.stderr.toString() + existing.stdout.toString())) throw new Error(`Registry lookup failed for ${spec}; stopping without publishing`);
   console.info(`Publishing ${spec}`);
-  await $`npm publish --access public --registry ${registry}`.cwd(`packages/${pkg.directory}`);
+  // Preserve the user's terminal for npm browser/passkey/OTP authentication.
+  const publish = Bun.spawn(['npm', 'publish', '--access', 'public', '--registry', registry], {
+    cwd: `packages/${pkg.directory}`, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit',
+  });
+  if (await publish.exited !== 0) throw new Error(`Publishing failed for ${spec}; retry after npm verification`);
 }
 console.info(`All four packages published at ${core.version}.`);
