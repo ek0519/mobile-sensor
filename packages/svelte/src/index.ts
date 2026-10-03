@@ -1,5 +1,5 @@
 import { readable } from 'svelte/store';
-import type { Channel, Sensors, DetectorEvent, DetectorName } from '@mobile-sensor/core';
+import type { Channel, Sensors, DetectorEvent, DetectorName, MobileSensor, MobileSensorOutput } from '@mobile-sensor/core';
 import type { Readable } from 'svelte/store';
 export interface SamplingOptions { fps?: number }
 export function sensorStore<T>(source: Channel<T>, options: SamplingOptions = {}): Readable<T> {
@@ -14,5 +14,18 @@ export function createSensorStores(sensors: Sensors, options: SamplingOptions = 
     pointer: sensorStore(sensors.pointer, options),
     device: sensorStore(sensors.device, options), status: sensorStore(sensors.status, options), permissions: sensorStore(sensors.permissions, options),
     events: { shake: event('shake'), movement: event('movement'), stationary: event('stationary'), tilt: event('tilt'), rotation: event('rotation') },
+  };
+}
+
+export { createMobileSensor } from '@mobile-sensor/core';
+export type { MobileSensor, MobileSensorOptions, MobileSensorStartOptions, MobileSensorOutput, MobileSensorEvent } from '@mobile-sensor/core';
+
+/** UI stores sample existing channels; unified output remains unthrottled. */
+export function createMobileSensorStores(source: MobileSensor, options: SamplingOptions = {}) {
+  return {
+    ...createSensorStores(source, options),
+    output: readable<MobileSensorOutput | null>(null, set => source.onData(set)),
+    // Direct subscriptions preserve every output even if Svelte coalesces UI updates.
+    onData: (handler: (output: MobileSensorOutput) => void) => source.onData(handler),
   };
 }

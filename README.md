@@ -373,3 +373,39 @@ bun run test:pack  # Install package tarballs in an isolated consumer project
 ```
 
 See [docs/SENSORS.md](docs/SENSORS.md) for sensor fields and detector thresholds, and [docs/TDD.md](docs/TDD.md) for the red/green test log. Chromium automation does not replace testing on real iOS Safari and Android Chrome devices; permissions, hardware, and browser versions can affect the data available on each phone.
+
+## Research architecture
+
+```text
+Raw Sensors
+    ↓
+Normalized Channels → Recorder → local Session → optional Lab upload / Replay
+    ↓
+Features
+    ↓
+Detectors
+    ↓
+Behaviors (Experimental)
+```
+
+Sensor Lab (`bun run dev:lab`) is a Svelte 5 development tool for labeled raw recordings, local JSON/NDJSON exports, replay and experimental behavior inspection. The existing demo remains available with `bun run dev`. Library packages work completely offline; the Sensor Lab server is optional. Upload happens only after an explicit Lab action, and location recording is off by default. See [recording and Lab setup](docs/RECORDING.md) and [experimental behavior estimates](docs/BEHAVIORS.md).
+
+## Unified raw data and inference stream
+
+Use `createMobileSensor` to automatically feed raw channels into the behavior engine and subscribe to one serializable output stream. Uploading, batching and storage remain application responsibilities. Existing `createSensors`, recorder and behavior engine APIs remain available.
+
+```ts
+import { createMobileSensor, type MobileSensorOutput } from '@mobile-sensor/core';
+
+const sensor = createMobileSensor(); // location off by default
+const pending: MobileSensorOutput[] = [];
+const unsubscribe = sensor.onData(output => pending.push(output));
+
+// In an Enable button click handler:
+await sensor.requestPermission();
+await sensor.start();
+// Your application can batch/serialize pending and send it to its own backend.
+// Later: unsubscribe(); sensor.destroy();
+```
+
+`MobileSensorOutput.kind` is `raw`, `gesture` or `behavior`; TypeScript narrows `data` accordingly. Every output includes `schemaVersion`, `sessionId`, `seq`, `recordSeq`, `t` and `timestamp`. See [the unified output contract](docs/UNIFIED-API.md).

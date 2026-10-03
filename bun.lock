@@ -33,6 +33,9 @@
         "svelte": "^5.39.0",
       },
     },
+    "apps/lab": {
+      "name": "@mobile-sensor/lab",
+    },
     "packages/core": {
       "name": "@mobile-sensor/core",
       "version": "0.1.1",
@@ -156,6 +159,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@mobile-sensor/core": ["@mobile-sensor/core@workspace:packages/core"],
+
+    "@mobile-sensor/lab": ["@mobile-sensor/lab@workspace:apps/lab"],
 
     "@mobile-sensor/react": ["@mobile-sensor/react@workspace:packages/react"],
 

@@ -210,3 +210,11 @@ function browserEnvironment(): SensorEnvironment | null {
 }
 function numeric(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 function vector(value?: { x?: unknown; y?: unknown; z?: unknown } | null) { return { x: numeric(value?.x), y: numeric(value?.y), z: numeric(value?.z) }; }
+
+export * from './recording/types';
+export * from './recording/recorder';
+export * from './recording/replay';
+export * from './features';
+export * from './behaviors';
+
+export * from './mobile-sensor';
