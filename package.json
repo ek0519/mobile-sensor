@@ -14,7 +14,7 @@
     "dev": "vite --config apps/demo/vite.config.ts --host 0.0.0.0",
     "test:e2e": "playwright test",
     "test:pack": "bun run scripts/pack-smoke.ts",
-    "publish:packages": "bun run build && bun run test:pack && (npm view @mobile-sensor/core@0.1.1 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/core@0.1.1' && npm publish ./packages/core --access public)) && (npm view @mobile-sensor/react@0.1.1 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/react@0.1.1' && npm publish ./packages/react --access public)) && (npm view @mobile-sensor/vue@0.1.1 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/vue@0.1.1' && npm publish ./packages/vue --access public)) && (npm view @mobile-sensor/svelte@0.1.1 version >/dev/null 2>&1 || (echo 'Publishing @mobile-sensor/svelte@0.1.1' && npm publish ./packages/svelte --access public))",
+    "publish:packages": "bun run test && bun run typecheck && bun run build && bun run test:pack && bun run scripts/publish.ts",
     "dev:lab": "vite --config apps/lab/vite.config.ts --host 0.0.0.0",
     "build:lab": "vite build --config apps/lab/vite.config.ts",
     "test:e2e:lab": "playwright test --config playwright.lab.config.ts"

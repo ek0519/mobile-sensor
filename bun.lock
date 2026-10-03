@@ -38,11 +38,11 @@
     },
     "packages/core": {
       "name": "@mobile-sensor/core",
-      "version": "0.1.1",
+      "version": "0.2.0",
     },
     "packages/react": {
       "name": "@mobile-sensor/react",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@mobile-sensor/core": "0.1.1",
       },
@@ -52,7 +52,7 @@
     },
     "packages/svelte": {
       "name": "@mobile-sensor/svelte",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@mobile-sensor/core": "0.1.1",
       },
@@ -62,7 +62,7 @@
     },
     "packages/vue": {
       "name": "@mobile-sensor/vue",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@mobile-sensor/core": "0.1.1",
       },
